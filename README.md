@@ -36,9 +36,37 @@ HTMLと同じように、:table, :tr, :th, :td といったタグを使って表
       [:th {:size 3} "ID"]
       [:th {:size 8} "名称"]]
     [:tr
-      [:td "名称"]
-      [:td "名称"]]
-      ])
+      [:td "1"]
+      [:td "kawasima"]]])
+```
+
+#### センタリング／右寄せ
+
+デフォルトはセル内のテキストは左寄せになりますが、:tdタグの属性に`{:text-align "center"}`または`{:text-align "right"}`を指定すると、 セルが結合されて中央寄せ、右寄せされます。
+
+```clojure
+(render sheet 2 2
+  [:table
+    [:tr
+      [:th {:size 3} "ID"]
+      [:th {:size 8} "金額"]]
+    [:tr
+      [:td "1"]
+      [:td {:text-align "right"} 15000]]])
+```
+
+#### 複数のセルを結合する
+
+HTMLのテーブルと同じようにcolspan属性が利用できます。
+
+```clojure
+(render sheet 2 2
+  [:table
+    [:tr
+      [:th {:size 3} "大分類"]
+      [:th {:size 8} "小分類"]]
+    [:tr
+      [:td {:colspan "2"} "マージ"]]])
 ```
 
 ### 箇条書き
