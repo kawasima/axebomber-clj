@@ -64,8 +64,10 @@
 
   (render sheet 40 2
           [:graphics {:size 24 :height 10}
-           [:box {:x 1 :y 1 :width 3 :height 1}
-            "ボックス"]]))
+           [:box {:x 1 :y 1 :width 3 :height 1} "BOX1"]
+           [:box {:x 2 :y 2 :width 3 :height 1} "BOX2"]
+           [:box {:x 4 :y 1 :width 3 :height 3} "BOX3"]
+           ]))
 
 (def model
   {:店舗 "西新宿店"

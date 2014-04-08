@@ -78,7 +78,6 @@
       (let [[w h child] (render sheet cx cy (first content)
                                 :direction :horizontal)
              cx (+ cx w)]
-        (println w h child)
         (reset! max-height (max h @max-height))
         (if (not-empty (rest content))
           (recur cx (rest content) (conj children child))
@@ -199,11 +198,15 @@
        (merge-with #(if %1 (str %1 " " %2) %2) (if class {:class class}))))
 
 (defn render-seq [sheet x y content options]
-  (case (get options :direction :none)
-    :vertical   (render-vertical sheet x y content)
-    :horizontal (render-horizontal sheet x y content)
-    (doall (for [cont content]
-             (render sheet x y cont)))))
+  (case (get options :direction :vertical)
+    :vertical   (render-vertical sheet x y [:dummy {} content])
+    :horizontal (render-horizontal sheet x y [:dummy {} content])
+    (reduce #(identity [(max (nth %1 0) (nth %2 0))
+                        (max (nth %1 1) (nth %2 1))
+                        (conj (nth %1 2) (nth %2 2))])
+      [0 0 []]
+      (for [cont content]
+        (render sheet x y cont)))))
 
 (defn render [sheet x y expr & options]
   (cond
