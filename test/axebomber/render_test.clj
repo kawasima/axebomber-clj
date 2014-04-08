@@ -10,7 +10,7 @@
   (render sheet 1 1
           [:table
            [:tr
-            [:td {:size 28 :class "title" :text-align "center"} "営業日報"]]
+            [:td {:size 28 :class "header" :text-align "center"} "営業日報"]]
            [:tr
             [:td {:size 3 :class "title"} "店舗"]
             [:td {:size 8} (:店舗 model)]
@@ -29,40 +29,38 @@
             [:td {:text-align "right"} (get-in model [:計画 :来客数])]
             [:td {:text-align "right"} (get-in model [:実績 :来客数])]
             [:td {:text-align "right"} (get-in model [:達成率 :来客数])]
-            [:td (get-in model [:備考])]]
+            [:td {:rowspan 4} (get-in model [:備考])]]
            [:tr
             [:td {:class "title"} "売上高"]
             [:td {:text-align "right"} (get-in model [:計画 :売上高])]
             [:td {:text-align "right"} (get-in model [:実績 :売上高])]
-            [:td {:text-align "right"} (get-in model [:達成率 :売上高])]
-            [:td ""]]
+            [:td {:text-align "right"} (get-in model [:達成率 :売上高])]]
            [:tr
             [:td {:class "title"} "客単価"]
             [:td {:text-align "right"} (get-in model [:計画 :客単価])]
             [:td {:text-align "right"} (get-in model [:実績 :客単価])]
-            [:td {:text-align "right"} (get-in model [:達成率 :客単価])]
-            [:td ""]]
+            [:td {:text-align "right"} (get-in model [:達成率 :客単価])]]
            [:tr
             [:td {:class "title"} "販売点数"]
             [:td {:text-align "right"} (get-in model [:計画 :来客数])]
             [:td {:text-align "right"} (get-in model [:実績 :来客数])]
-            [:td {:text-align "right"} (get-in model [:達成率 :来客数])]
-            [:td ""]]
+            [:td {:text-align "right"} (get-in model [:達成率 :来客数])]]
            [:tr
-            [:td {:size 28 :class "title" :text-align "center"} "取引記録"]]
-           [:tr
-            [:td {:size 9 :class "title"} "取引先名"]
-            [:td {:size 6 :class "title"} "連絡先"]
-            [:td {:size 13 :class "title"} "内容"]]
+            [:td {:size 2 :rowspan (inc (count (:取引記録 model)))
+                  :writing-mode "vertical-rl"
+                  :class "title"}
+             "取引記録"]
+            [:td {:size 7 :class "title" :text-align "center"} "取引先名"]
+            [:td {:size 6 :class "title" :text-align "center"} "連絡先"]
+            [:td {:size 13 :class "title" :text-align "center"} "内容"]]
            (for [rec (:取引記録 model)]
              [:tr
               [:td (:取引先名 rec)]
               [:td (:連絡先 rec)]
               [:td (:内容 rec)]])
            [:tr
-            [:td {:size 28 :class "title" :text-align "center"} "特記事項"]]
-           [:tr
-            [:td (:特記事項 model)]]]))
+            [:td {:size 2 :class "title" :writing-mode "vertical-rl" :rowspan 8} "特記事項"]
+            [:td {:size 26 :rowspan 8} (:特記事項 model)]]]))
 
 (def model
   {:店舗 "西新宿店"
@@ -97,6 +95,10 @@
       (create-style-set wb :default :border-type CellStyle/BORDER_THIN)
       (create-style-set wb "title"
                         :border-type CellStyle/BORDER_THIN
+                        :background-color (.getIndex IndexedColors/LIGHT_GREEN))
+      (create-style-set wb "header"
+                        :border-type CellStyle/BORDER_THIN
+                        :color (.getIndex IndexedColors/WHITE)
                         :background-color (.getIndex IndexedColors/SEA_GREEN))
       (template sheet model)
       (with-open [out (io/output-stream "target/営業日報.xlsx")]

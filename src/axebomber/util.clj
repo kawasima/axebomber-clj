@@ -41,3 +41,7 @@
 (defn get-cell [sheet x y]
   (CellUtil/getCell (CellUtil/getRow y sheet) x))
 
+(defn get-merged-region [cell]
+  (let [sheet (.getSheet cell)]
+    (some #(when (.isInRange % (.getRowIndex cell) (.getColumnIndex cell)) %)
+          (map #(.getMergedRegion sheet %) (range (. sheet getNumMergedRegions))))))

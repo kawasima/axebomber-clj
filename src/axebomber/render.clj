@@ -1,4 +1,6 @@
 (ns axebomber.render
+  (:require [clj-time.format :as time-fmt]
+            [clj-time.coerce :as c])
   (:use [axebomber.util]
         [axebomber.style])
   (:import [org.apache.poi.ss.util CellUtil]
@@ -10,9 +12,13 @@
        :private true}
   re-tag #"([^\s\.#]+)(?:#([^\s\.#]+))?(?:\.([^\s#]+))?")
 
+(def time-formatter (time-fmt/formatter "yy年MM月dd日"))
+
 (defn- literal? [expr]
   (or (string? expr)
-      (keyword? expr)))
+      (keyword? expr)
+      (number? expr)
+      (instance? java.util.Date expr)))
 
 (defn- merge-attributes [{:keys [id class]} map-attrs]
   (->> map-attrs
@@ -32,11 +38,17 @@
       [tag (merge-attributes tag-attrs map-attrs) (next content)]
       [tag tag-attrs content])))
 
+(defn correct-td-position [sheet x y]
+  (loop [cx x]
+    (if-let [merged-region (get-merged-region (get-cell sheet cx y))]
+      (do
+        (recur (inc (.getLastColumn merged-region))))
+      cx)))
+
 (defn- inherit-size [sheet x y & {:keys [colspan] :or {colspan 1}}]
   (loop [cx x, cols 1]
     (let [cell (get-cell sheet cx (dec y))]
-      (if-let [merged-cell (some #(when (.isInRange % (.getRowIndex cell) (.getColumnIndex cell)) %)
-                                 (map #(.getMergedRegion sheet %) (range (. sheet getNumMergedRegions))))]
+      (if-let [merged-cell (get-merged-region cell)]
         (if (>= cols colspan)
           (- (.getLastColumn merged-cell) (.getFirstColumn merged-cell) -1)
           (recur (+ (.getLastColumn merged-cell) 1) (inc cols)))
@@ -49,7 +61,9 @@
             (recur (inc cx) cols)))))))
 
 (defn render-literal [sheet x y lit]
-  (let [lines (-> (map-indexed
+  (let [lit (if (instance? java.util.Date lit)
+              (time-fmt/unparse time-formatter (c/from-date lit)) lit)
+        lines (-> (map-indexed
                    (fn [idx v]
                      (let [c (get-cell sheet x (+ y idx))]
                        (.setCellValue c v)))
@@ -89,21 +103,22 @@
 (defmethod render-tag "tr" [sheet x y tag attrs content]
   (let [[w h td-tags] (render-horizontal sheet x y tag attrs content)]
     (loop [cx x, idx 0]
-      (let [[td-tag td-attrs _] (nth td-tags idx)
-            size (get td-attrs :size 3)
-            align (get td-attrs :text-align "left")]
+      (let [cx (correct-td-position sheet cx y)
+            [td-tag td-attrs _] (nth td-tags idx)
+            size (get td-attrs :size 3)]
         (apply-style sheet cx y size h td-attrs)
         (if (< idx (dec (count td-tags)))
           (recur (+ cx size) (inc idx))
           [w h [:tr attrs td-tags]])))))
 
 (defmethod render-tag "td" [sheet x y tag attrs content]
-  (let [[w h child] (render sheet x y content)
-         size (or (and (:colspan attrs) (inherit-size sheet x y :colspan (:colspan attrs)))
+  (let [cx (correct-td-position sheet x y)
+        [w h child] (render sheet cx y content)
+        size (or (and (:colspan attrs) (inherit-size sheet cx y :colspan (:colspan attrs)))
                   (:size attrs)
-                  (inherit-size sheet x y))
-         attrs (assoc attrs :size size)]
-    [size h [:td attrs child]]))
+                  (inherit-size sheet cx y))
+        attrs (assoc attrs :size size)]
+    [(+ size (- cx x)) h [:td attrs child]]))
 
 (defmethod render-tag "ul" [sheet x y tag attrs content]
   (let [list-style-type (get attrs :list-style-type "・")
