@@ -71,22 +71,25 @@
                 count)]
     [1 lines lit]))
 
-(defn render-horizontal [sheet x y tag attrs content]
+(defn render-horizontal [sheet x y [tag attrs content]]
   (let [max-height (atom 0)
         cy (+ y (get attrs :margin-top 0))]
     (loop [cx (+ x (get attrs :margin-left 0)), content content, children []]
-      (let [[w h child] (render sheet cx cy (first content))
+      (let [[w h child] (render sheet cx cy (first content)
+                                :direction :horizontal)
              cx (+ cx w)]
+        (println w h child)
         (reset! max-height (max h @max-height))
         (if (not-empty (rest content))
           (recur cx (rest content) (conj children child))
           [(- cx x) @max-height (conj children child)])))))
 
-(defn render-vertical [sheet x y tag attrs content]
+(defn render-vertical [sheet x y [tag attrs content]]
   (let [max-width (atom 0)
         cx (+ x (get attrs :margin-left 0))]
     (loop [cy (+ y (get attrs :margin-top 0)), content content, children []]
-      (let [[w h child] (render sheet cx cy (first content))
+      (let [[w h child] (render sheet cx cy (first content)
+                                :direction :vertical)
              cy (+ cy h)]
         (reset! max-width (max w @max-width))
         (if (not-empty (rest content))
@@ -98,10 +101,10 @@
 (defmulti render-tag (fn [sheet x y tag & rst] tag))
 
 (defmethod render-tag "table" [sheet x y tag attrs content]
-  (render-vertical sheet x y tag attrs content))
+  (render-vertical sheet x y [tag attrs content]))
 
 (defmethod render-tag "tr" [sheet x y tag attrs content]
-  (let [[w h td-tags] (render-horizontal sheet x y tag attrs content)]
+  (let [[w h td-tags] (render-horizontal sheet x y [tag attrs content])]
     (loop [cx x, idx 0]
       (let [cx (correct-td-position sheet cx y)
             [td-tag td-attrs _] (nth td-tags idx)
@@ -120,9 +123,21 @@
         attrs (assoc attrs :size size)]
     [(+ size (- cx x)) h [:td attrs child]]))
 
+(defmethod render-tag "box" [sheet px py tag {:keys [x y width height] :as attrs} content]
+  (let [[w h child] (render sheet (+ px x) (+ py y) content)]
+    (apply-style sheet (+ px x) (+ py y) width height attrs)
+    [w h child]))
+
+(defmethod render-tag "graphics" [sheet x y tag attrs content]
+  (let [w (:size attrs)
+        h (:height attrs)]
+    (doseq [cont content]
+      (render sheet x y cont))
+    [w h nil]))
+
 (defmethod render-tag "ul" [sheet x y tag attrs content]
   (let [list-style-type (get attrs :list-style-type "・")
-        [w h children] (render-vertical sheet x y tag attrs content)]
+        [w h children] (render-vertical sheet x y [tag attrs content])]
     (->> children
          (tree-seq sequential? seq)
          (filter #(and (vector? %) (= (first %) "li")))
@@ -132,7 +147,7 @@
 
 (defmethod render-tag "ol" [sheet x y tag attrs content]
   (let [list-style-type (get attrs :list-style-type "・")
-        [w h children] (render-vertical sheet x y tag attrs content)]
+        [w h children] (render-vertical sheet x y [tag attrs content])]
     (->> children
          (tree-seq sequential? seq)
          (filter #(and (vector? %) (= (first %) "li")))
@@ -146,7 +161,7 @@
 
 (defmethod render-tag :default
   [sheet x y tag attrs content]
-  (render-vertical sheet x y tag attrs content))
+  (render-vertical sheet x y [tag attrs content]))
 
 (defn- element-render-strategy
   "Returns the compilation strategy to use for a given element."
@@ -183,18 +198,18 @@
        (merge (if id {:id id}))
        (merge-with #(if %1 (str %1 " " %2) %2) (if class {:class class}))))
 
-(defn render-seq [sheet x y content]
-  (loop [cx x, cy y, content content, children []]
-    (let [[w h child] (render sheet cx cy (first content))]
-      (if (not-empty (rest content))
-        (recur cx (+ cy h) (rest content) (conj children child))
-        [(+ cx w (- x)) (+ cy h (- y)) (conj children child)]))))
+(defn render-seq [sheet x y content options]
+  (case (get options :direction :none)
+    :vertical   (render-vertical sheet x y content)
+    :horizontal (render-horizontal sheet x y content)
+    (doall (for [cont content]
+             (render sheet x y cont)))))
 
-(defn render [sheet x y expr]
+(defn render [sheet x y expr & options]
   (cond
    (vector? expr) (render-element sheet x y expr)
    (literal? expr) (render-literal sheet x y expr)
-   (seq? expr) (render-seq sheet x y expr)
+   (seq? expr) (render-seq sheet x y expr options)
    (nil? expr) [1 1 ""]
    :else (render-literal sheet x y (str expr))))
 

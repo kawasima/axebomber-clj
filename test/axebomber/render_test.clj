@@ -60,7 +60,12 @@
               [:td (:内容 rec)]])
            [:tr
             [:td {:size 2 :class "title" :writing-mode "vertical-rl" :rowspan 8} "特記事項"]
-            [:td {:size 26 :rowspan 8} (:特記事項 model)]]]))
+            [:td {:size 26 :rowspan 8} (:特記事項 model)]]])
+
+  (render sheet 40 2
+          [:graphics {:size 24 :height 10}
+           [:box {:x 1 :y 1 :width 3 :height 1}
+            "ボックス"]]))
 
 (def model
   {:店舗 "西新宿店"
