@@ -1,7 +1,8 @@
 (ns axebomber.render
   (:require [clj-time.format :as time-fmt]
             [clj-time.coerce :as c])
-  (:use [axebomber.util]
+  (:use [clojure.walk :only [prewalk]]
+        [axebomber.util]
         [axebomber.style])
   (:import [org.apache.poi.ss.util CellUtil]
            [org.apache.poi.ss.usermodel CellStyle IndexedColors]))
@@ -19,6 +20,13 @@
       (keyword? expr)
       (number? expr)
       (instance? java.util.Date expr)))
+
+(defn- filter-children [tree tag]
+  (let [children (atom [])]
+    (prewalk #(if (and (vector? %) (= (first %) tag))
+                (do (swap! children conj %) %) %)
+             tree)
+    @children))
 
 (defn- merge-attributes [{:keys [id class]} map-attrs]
   (->> map-attrs
@@ -103,7 +111,8 @@
   (render-vertical sheet x y [tag attrs content]))
 
 (defmethod render-tag "tr" [sheet x y tag attrs content]
-  (let [[w h td-tags] (render-horizontal sheet x y [tag attrs content])]
+  (let [[w h td-tags] (render-horizontal sheet x y [tag attrs content])
+        td-tags (filter-children td-tags "td")]
     (loop [cx x, idx 0]
       (let [cx (correct-td-position sheet cx y)
             [td-tag td-attrs _] (nth td-tags idx)
@@ -111,7 +120,7 @@
         (apply-style sheet cx y size h td-attrs)
         (if (< idx (dec (count td-tags)))
           (recur (+ cx size) (inc idx))
-          [w h [:tr attrs td-tags]])))))
+          [w h ["tr" attrs td-tags]])))))
 
 (defmethod render-tag "td" [sheet x y tag attrs content]
   (let [cx (correct-td-position sheet x y)
@@ -120,7 +129,7 @@
                   (:size attrs)
                   (inherit-size sheet cx y))
         attrs (assoc attrs :size size)]
-    [(+ size (- cx x)) h [:td attrs child]]))
+    [(+ size (- cx x)) h ["td" attrs child]]))
 
 (defmethod render-tag "box" [sheet px py tag {:keys [x y width height] :as attrs} content]
   (let [[w h child] (render sheet (+ px x) (+ py y) content)]
@@ -131,7 +140,7 @@
   (let [w (:size attrs)
         h (:height attrs)]
     (doseq [cont content]
-      (render sheet x y cont))
+      (render sheet x y cont :direction :none))
     [w h nil]))
 
 (defmethod render-tag "ul" [sheet x y tag attrs content]
@@ -200,6 +209,7 @@
 (defn render-seq [sheet x y content options]
   (case (get options :direction :vertical)
     :vertical   (render-vertical sheet x y [:dummy {} content])
+
     :horizontal (render-horizontal sheet x y [:dummy {} content])
     (reduce #(identity [(max (nth %1 0) (nth %2 0))
                         (max (nth %1 1) (nth %2 1))
@@ -208,7 +218,7 @@
       (for [cont content]
         (render sheet x y cont)))))
 
-(defn render [sheet x y expr & options]
+(defn render [sheet x y expr & {:as options}]
   (cond
    (vector? expr) (render-element sheet x y expr)
    (literal? expr) (render-literal sheet x y expr)

@@ -62,12 +62,21 @@
             [:td {:size 2 :class "title" :writing-mode "vertical-rl" :rowspan 8} "特記事項"]
             [:td {:size 26 :rowspan 8} (:特記事項 model)]]])
 
-  (render sheet 40 2
-          [:graphics {:size 24 :height 10}
-           [:box {:x 1 :y 1 :width 3 :height 1} "BOX1"]
-           [:box {:x 2 :y 2 :width 3 :height 1} "BOX2"]
-           [:box {:x 4 :y 1 :width 3 :height 3} "BOX3"]
-           ]))
+  (render sheet 31 1
+          [:div
+           "スケジュール"
+           [:table {:margin-left 1 :margin-bottom 1}
+            [:tr
+             [:td {:class "header" :size 24} "2014年"]]
+            [:tr
+             (for [mon (range 1 13)]
+               [:td {:class "title" :size 2} (str mon "月")])]
+            [:tr
+             [:td {:colspan 12}
+              [:graphics {:size 24 :height 8}
+               (for [task (range 1 11)]
+                 [:box {:x (+ task 4) :y 1
+                        :width 1 :height 1} task])]]]]]))
 
 (def model
   {:店舗 "西新宿店"
