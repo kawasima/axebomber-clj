@@ -15,6 +15,8 @@
 
 (def time-formatter (time-fmt/formatter "yy年MM月dd日"))
 
+(def ^:const default-column-width 5)
+
 (defn- literal? [expr]
   (or (string? expr)
       (keyword? expr)
@@ -24,7 +26,7 @@
 (defn- filter-children [tree tag]
   (let [children (atom [])]
     (prewalk #(if (and (vector? %) (= (first %) tag))
-                (do (swap! children conj %) %) %)
+                (do (swap! children conj %) nil) %)
              tree)
     @children))
 
@@ -54,19 +56,22 @@
       cx)))
 
 (defn- inherit-size [sheet x y & {:keys [colspan] :or {colspan 1}}]
-  (loop [cx x, cols 1]
-    (let [cell (get-cell sheet cx (dec y))]
-      (if-let [merged-cell (get-merged-region cell)]
-        (if (>= cols colspan)
-          (- (.getLastColumn merged-cell) (.getFirstColumn merged-cell) -1)
-          (recur (+ (.getLastColumn merged-cell) 1) (inc cols)))
-        (if (not= (.. cell getCellStyle getBorderRight) CellStyle/BORDER_NONE)
+  (if (or (<= y 0)
+          (= (.. (get-cell sheet x (dec y)) getCellStyle getBorderLeft) CellStyle/BORDER_NONE))
+    default-column-width
+    (loop [cx x, cols 1]
+      (let [cell (get-cell sheet cx (dec y))]
+        (if-let [merged-cell (get-merged-region cell)]
           (if (>= cols colspan)
-            (- cx x -1)
-            (recur (inc cx) (inc cols)))
-          (if (> cx 255)
-            (- cx x -1)
-            (recur (inc cx) cols)))))))
+            (- (.getLastColumn merged-cell) (.getFirstColumn merged-cell) -1)
+            (recur (+ (.getLastColumn merged-cell) 1) (inc cols)))
+          (if (not= (.. cell getCellStyle getBorderRight) CellStyle/BORDER_NONE)
+            (if (>= cols colspan)
+              (- cx x -1)
+              (recur (inc cx) (inc cols)))
+            (if (> cx 255)
+              (- cx x -1)
+              (recur (inc cx) cols))))))))
 
 (defn render-literal [sheet x y lit]
   (let [lit (if (instance? java.util.Date lit)
@@ -81,8 +86,8 @@
 
 (defn render-horizontal [sheet x y [tag attrs content]]
   (let [max-height (atom 0)
-        cy (+ y (get attrs :margin-top 0))]
-    (loop [cx (+ x (get attrs :margin-left 0)), content content, children []]
+        cy (+ y (get attrs :data-margin-top 0))]
+    (loop [cx (+ x (get attrs :data-margin-left 0)), content content, children []]
       (let [[w h child] (render sheet cx cy (first content)
                                 :direction :horizontal)
              cx (+ cx w)]
@@ -93,8 +98,8 @@
 
 (defn render-vertical [sheet x y [tag attrs content]]
   (let [max-width (atom 0)
-        cx (+ x (get attrs :margin-left 0))]
-    (loop [cy (+ y (get attrs :margin-top 0)), content content, children []]
+        cx (+ x (get attrs :data-margin-left 0))]
+    (loop [cy (+ y (get attrs :data-margin-top 0)), content content, children []]
       (let [[w h child] (render sheet cx cy (first content)
                                 :direction :vertical)
              cy (+ cy h)]
@@ -102,7 +107,7 @@
         (if (not-empty (rest content))
           (recur cy (rest content) (conj children child))
           [@max-width
-           (- cy y (- (get attrs :margin-bottom 0)))
+           (- cy y (- (get attrs :data-margin-bottom 0)))
            (conj children child)])))))
 
 (defmulti render-tag (fn [sheet x y tag & rst] tag))
@@ -116,8 +121,8 @@
     (loop [cx x, idx 0]
       (let [cx (correct-td-position sheet cx y)
             [td-tag td-attrs _] (nth td-tags idx)
-            size (get td-attrs :size 3)]
-        (apply-style sheet cx y size h td-attrs)
+            size (get td-attrs :data-width 3)]
+        (apply-style "td" sheet cx y size h td-attrs)
         (if (< idx (dec (count td-tags)))
           (recur (+ cx size) (inc idx))
           [w h ["tr" attrs td-tags]])))))
@@ -126,22 +131,23 @@
   (let [cx (correct-td-position sheet x y)
         [w h child] (render sheet cx y content)
         size (or (and (:colspan attrs) (inherit-size sheet cx y :colspan (:colspan attrs)))
-                  (:size attrs)
+                  (:data-width attrs)
                   (inherit-size sheet cx y))
-        attrs (assoc attrs :size size)]
+        attrs (assoc attrs :data-width size)]
     [(+ size (- cx x)) h ["td" attrs child]]))
 
-(defmethod render-tag "box" [sheet px py tag {:keys [x y width height] :as attrs} content]
-  (let [[w h child] (render sheet (+ px x) (+ py y) content)]
-    (apply-style sheet (+ px x) (+ py y) width height attrs)
-    [w h child]))
+(defmethod render-tag "box" [sheet px py tag {:keys [x y w h] :as attrs} content]
+  (let [[cw ch child] (render sheet (+ px x) (+ py y) content)]
+    (apply-style "box" sheet (+ px x) (+ py y) w h attrs)
+    [cw ch child]))
 
 (defmethod render-tag "graphics" [sheet x y tag attrs content]
-  (let [w (:size attrs)
-        h (:height attrs)]
+  (let [w (:data-width attrs)
+        h (:data-height attrs)]
     (doseq [cont content]
       (render sheet x y cont :direction :none))
     [w h nil]))
+
 
 (defmethod render-tag "ul" [sheet x y tag attrs content]
   (let [list-style-type (get attrs :list-style-type "・")

@@ -4,7 +4,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
-  :dependencies [[org.clojure/clojure "1.5.1"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.apache.poi/poi "3.10-FINAL"]
                  [org.apache.poi/poi-ooxml "3.10-FINAL"]
                  [clj-time "0.6.0"]
@@ -15,6 +15,6 @@
 	]
   :jvm-opts ["-Djava.library.path=native"]
   :profiles {:dev
-              {:dependencies [[midje "1.5.1"]]
+              {:dependencies [[midje "1.6.3"]]
                :plugins [[lein-midje "3.1.1"]]}})
 

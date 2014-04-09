@@ -1,5 +1,6 @@
 target
 resources
 .lein-*
+.nrepl-*
 pom.xml
 
