@@ -78,4 +78,8 @@
                    style))]
     (swap! style-sets assoc style-name (vec styles))))
 
+(defn init-style [wb]
+  (create-style-set wb :default :border-type CellStyle/BORDER_THIN)
+  (reset! styled #{}))
+
 

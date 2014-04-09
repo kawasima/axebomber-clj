@@ -1,7 +1,7 @@
 (ns axebomber.render-test
   (:require [clojure.java.io :as io])
   (:use [axebomber usermodel render]
-    [axebomber.style :only [create-style-set]]
+    [axebomber.style :only [create-style-set init-style]]
     [midje.sweet])
   (:import [org.apache.poi.ss.usermodel CellStyle IndexedColors]
            [java.util Date]))
@@ -108,7 +108,7 @@
 (fact "Generate hogan."
     (let [wb (create-workbook)
         sheet (to-grid (.createSheet wb "営業日報"))]
-      (create-style-set wb :default :border-type CellStyle/BORDER_THIN)
+      (init-style wb)
       (create-style-set wb "title"
                         :border-type CellStyle/BORDER_THIN
                         :background-color (.getIndex IndexedColors/LIGHT_GREEN))
