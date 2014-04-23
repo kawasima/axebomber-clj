@@ -11,11 +11,11 @@
        (let [wb (create-workbook)]
          (fact "Simple render"
                (let [sheet (to-grid (.createSheet wb "Simple render"))]
-                 (render sheet 1 1 "こんにちは、Excel方眼紙！")
-                 (render sheet 1 2 "さようなら、UIとしてのExcel…")))
+                 (render sheet {:x 1 :y 1} "こんにちは、Excel方眼紙！")
+                 (render sheet {:x 1 :y 2} "さようなら、UIとしてのExcel…")))
          (fact "Simple tabel"
                (let [sheet (to-grid (.createSheet wb "Simple table"))]
-                 (render sheet 0 0
+                 (render sheet {:x 0 :y 0}
                          [:table
                           [:tr
                            [:td "ID"]
@@ -28,7 +28,7 @@
                            [:td "ばなな"]]])))
          (fact "Styled table"
                (let [sheet (to-grid (.createSheet wb "Styled table"))]
-                 (render sheet 0 0
+                 (render sheet {:x 0 :y 0}
                          [:table
                           [:tr
                            [:td {:data-width 3 :style "background-color: lightblue"} "ID"]
@@ -43,7 +43,7 @@
                (let [sheet (to-grid (.createSheet wb "Class-based style"))]
                  (create-style ".title1" :background-color "lightblue")
                  (create-style ".title2" :background-color "lightgreen")
-                 (render sheet 1 1
+                 (render sheet {:x 1 :y 1}
                          [:table
                           [:tr
                            [:td.title1 {:data-width 3} "ID"]
@@ -57,7 +57,7 @@
 
          (fact "Table in table."
                (let [sheet (to-grid (.createSheet wb "Table in table"))]
-                 (render sheet 1 1
+                 (render sheet {:x 1 :y 1}
                          [:table
                           [:tr
                            [:td.title1 {:data-width 3} "ID"]
@@ -80,7 +80,7 @@
 
          (fact "Basic list"
                (let [sheet (to-grid (.createSheet wb "Basic list"))]
-                 (render sheet 1 1
+                 (render sheet {:x 1 :y 1}
                          [:ul
                           [:li "りんご"]
                           [:li "ばなな"]
@@ -88,7 +88,7 @@
 
          (fact "Ordered list"
                (let [sheet (to-grid (.createSheet wb "Orderd list"))]
-                 (render sheet 1 1
+                 (render sheet {:x 1 :y 1}
                          [:ol
                           [:li "りんご"]
                           [:li "ばなな"]
@@ -96,10 +96,22 @@
 
          (fact "Graphics"
                (let [sheet (to-grid (.createSheet wb "Graphics"))]
-                 (render sheet 1 1
+                 (render sheet {:x 1 :y 1}
                          [:graphics {:data-width 30 :data-height 30}
                           [:box {:x 1 :y 1 :w 3 :h 3} "ハコ1"]
                           [:box {:x 5 :y 2 :w 4 :h 2} "ハコ2"]])))
+
+         (fact "Defined list"
+               (let [sheet (to-grid (.createSheet wb "Defined list"))]
+                 (render sheet {:x 1 :y 1}
+                         [:dl
+                          [:dt "品質"]
+                          [:dd "非常に良い"]
+                          [:dt "生産性"]
+                          [:dd "非常に高い"]
+                          [:dt "納期"]
+                          [:dd "ピッタリ"]
+                          ])))
 
 
          (with-open [out (io/output-stream "target/simple.xlsx")]

@@ -1,8 +1,11 @@
 (ns axebomber.util
   (:import [org.apache.poi.ss.util CellUtil]
-           [org.apache.poi.ss.usermodel CellStyle]))
+           [org.apache.poi.ss.usermodel CellStyle]
+           [java.awt Font Toolkit Canvas]))
 
 (def ^:dynamic *base-url* nil)
+(def canvas (Canvas.))
+(def dpi (.getScreenResolution (Toolkit/getDefaultToolkit)))
 
 (defmacro with-base-url
   "Sets a base URL that will be prepended onto relative URIs. Note that for this
@@ -39,7 +42,9 @@
   [& xs]
   (apply str (map to-str xs)))
 
-(defn get-cell [sheet x y]
+(defn get-cell
+  "get a cell located by (x, y)"
+  [sheet x y]
   (when (and (>= x 0) (>= y 0))
     (CellUtil/getCell (CellUtil/getRow y sheet) x)))
 
@@ -66,3 +71,8 @@
       :left   (not= (.getBorderLeft style) CellStyle/BORDER_NONE)
       :right  (not= (.getBorderRight style) CellStyle/BORDER_NONE))))
 
+(defn string-width
+  "Calculate the width of a given string."
+  [s font]
+  (let [metrics (.getFontMetrics canvas font)]
+    (float (* (.stringWidth metrics s) (/ dpi 72)))))

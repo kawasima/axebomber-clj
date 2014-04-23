@@ -10,7 +10,7 @@
 
 
 (defn template [sheet model]
-  (render sheet 1 1
+  (render sheet {:x 1 :y 1}
           [:table
            [:tr
             [:td.header {:data-width 28} "営業日報"]]
