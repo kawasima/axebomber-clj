@@ -1,5 +1,6 @@
 (ns axebomber.util
-  (:import [org.apache.poi.ss.util CellUtil]))
+  (:import [org.apache.poi.ss.util CellUtil]
+           [org.apache.poi.ss.usermodel CellStyle]))
 
 (def ^:dynamic *base-url* nil)
 
@@ -39,9 +40,29 @@
   (apply str (map to-str xs)))
 
 (defn get-cell [sheet x y]
-  (CellUtil/getCell (CellUtil/getRow y sheet) x))
+  (when (and (>= x 0) (>= y 0))
+    (CellUtil/getCell (CellUtil/getRow y sheet) x)))
 
 (defn get-merged-region [cell]
   (let [sheet (.getSheet cell)]
     (some #(when (.isInRange % (.getRowIndex cell) (.getColumnIndex cell)) %)
           (map #(.getMergedRegion sheet %) (range (. sheet getNumMergedRegions))))))
+
+(defn neighbor [cell direction]
+  (let [x (.getColumnIndex cell) y (.getRowIndex cell)]
+    (case direction
+      :up    (when (> y 0)
+               (some-> (.getSheet cell) (.getRow (dec y)) (.getCell x)))
+      :down  (some-> (.getSheet cell) (.getRow (inc y)) (.getCell x))
+      :left  (when (> x 0)
+               (some-> (.getSheet cell) (.getRow y) (.getCell (dec x))))
+      :right (some-> (.getSheet cell) (.getRow y) (.getCell (inc x))))))
+
+(defn border? [cell pos]
+  (when-let [style (some-> cell (.getCellStyle))]
+    (case pos
+      :top    (not= (.getBorderTop style) CellStyle/BORDER_NONE)
+      :bottom (not= (.getBorderBottom style) CellStyle/BORDER_NONE)
+      :left   (not= (.getBorderLeft style) CellStyle/BORDER_NONE)
+      :right  (not= (.getBorderRight style) CellStyle/BORDER_NONE))))
+

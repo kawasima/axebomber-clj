@@ -8,6 +8,7 @@
                  [org.apache.poi/poi "3.10-FINAL"]
                  [org.apache.poi/poi-ooxml "3.10-FINAL"]
                  [clj-time "0.6.0"]
+                 [hiccup "1.0.5"]
 ;;                 [net.sf.jacob-project/jacob "1.17"]
 ;;                 [org.apache.pdfbox/pdfbox "1.8.4"]
 ;;                 [org.apache.xmlgraphics/batik-svggen "1.7"]

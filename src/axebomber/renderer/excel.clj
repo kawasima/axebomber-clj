@@ -1,4 +1,4 @@
-(ns axebomber.render
+(ns axebomber.renderer.excel
   (:require [clj-time.format :as time-fmt]
             [clj-time.coerce :as c])
   (:use [clojure.walk :only [prewalk]]
@@ -48,11 +48,25 @@
       [tag (merge-attributes tag-attrs map-attrs) (next content)]
       [tag tag-attrs content])))
 
+(defn in-box [cell]
+  (let [x (.getColumnIndex cell) y (.getRowIndex cell)
+        sheet (.getSheet cell)
+        box-pos (for [direction [:top :bottom :left :right]]
+                  (loop [cx x, cy y]
+                    (if (border? (get-cell sheet cx cy) direction)
+                      [cx cy]
+                      (when (and
+                             (< 0 cx (dec (.. sheet (getRow cy) (getLastCellNum))))
+                             (< 0 cy (inc (.. sheet (getLastRowNum)))))
+                        (recur (case direction :left (dec cx) :right (inc cx) cx)
+                               (case direction :top (dec cy) :bottom (inc cy) cy))))))]
+    (when-not (some nil? box-pos)
+      box-pos)))
+
 (defn correct-td-position [sheet x y]
   (loop [cx x]
-    (if-let [merged-region (get-merged-region (get-cell sheet cx y))]
-      (do
-        (recur (inc (.getLastColumn merged-region))))
+    (if-let [[_ _ _ right] (in-box (get-cell sheet cx y))]
+      (recur (inc (first right)))
       cx)))
 
 (defn- inherit-size [sheet x y & {:keys [colspan] :or {colspan 1}}]
@@ -118,14 +132,15 @@
 (defmethod render-tag "tr" [sheet x y tag attrs content]
   (let [[w h td-tags] (render-horizontal sheet x y [tag attrs content])
         td-tags (filter-children td-tags "td")]
-    (loop [cx x, idx 0]
+    (loop [cx x, idx 0, row-height 65536]
       (let [cx (correct-td-position sheet cx y)
             [td-tag td-attrs _] (nth td-tags idx)
-            size (get td-attrs :data-width 3)]
-        (apply-style "td" sheet cx y size h td-attrs)
+            size (get td-attrs :data-width 3)
+            height (get td-attrs :data-height h)]
+        (apply-style "td" sheet cx y size height td-attrs)
         (if (< idx (dec (count td-tags)))
-          (recur (+ cx size) (inc idx))
-          [w h ["tr" attrs td-tags]])))))
+          (recur (+ cx size) (inc idx) (min row-height height))
+          [w (min row-height height) ["tr" attrs td-tags]])))))
 
 (defmethod render-tag "td" [sheet x y tag attrs content]
   (let [cx (correct-td-position sheet x y)
@@ -160,8 +175,7 @@
     [w h children]))
 
 (defmethod render-tag "ol" [sheet x y tag attrs content]
-  (let [list-style-type (get attrs :list-style-type "・")
-        [w h children] (render-vertical sheet x y [tag attrs content])]
+  (let [[w h children] (render-vertical sheet x y [tag attrs content])]
     (->> children
          (tree-seq sequential? seq)
          (filter #(and (vector? %) (= (first %) "li")))

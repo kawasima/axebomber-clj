@@ -1,11 +1,13 @@
-(ns axebomber.complex-test
+(ns axebomber.renderer.html.complex-test
   (:require [clojure.java.io :as io])
   (:use [axebomber usermodel]
-    [axebomber.renderer excel]
+    [axebomber.renderer html]
     [axebomber.style :only [create-style]]
+    [hiccup core page]
+    [clojure.pprint]
     [midje.sweet])
-  (:import [org.apache.poi.ss.usermodel CellStyle IndexedColors]
-           [java.util Date]))
+  (:import [java.util Date]))
+
 
 (defn template [sheet model]
   (render sheet 1 1
@@ -58,22 +60,7 @@
               [:td (:内容 rec)]])
            [:tr
             [:td.title.vertical {:data-width 2 :data-height 8} "特記事項"]
-            [:td {:data-width 26 :data-height 8 :style "vertical-align: top"} (:特記事項 model)]]])
-
-  (render sheet 31 1
-          [:div
-           "スケジュール"
-           [:table {:data-margin-left 1 :data-margin-bottom 1}
-            [:tr
-             [:td {:class "header" :data-width 24} "2014年"]]
-            [:tr
-             (for [mon (range 1 13)]
-               [:td {:class "title" :data-width 2} (str mon "月")])]
-            [:tr
-             [:td {:colspan 12}
-              [:graphics {:data-width 24 :data-height 8}
-               (for [task (range 1 11)]
-                 [:box {:x (+ task 4) :y 1 :w 1 :h 1} task])]]]]]))
+            [:td {:data-width 26 :data-height 8 :style "vertical-align: top"} (:特記事項 model)]]]))
 
 (def model
   {:店舗 "西新宿店"
@@ -103,24 +90,6 @@
    :特記事項 "特になし\n\n\n\nですが、改行の分だけ行数が伸びます。"})
 
 (fact "Generate hogan."
-    (let [wb (create-workbook)
-        sheet (to-grid (.createSheet wb "営業日報"))]
-      (create-style ".title"
-                    :border-style "solid"
-                    :background-color "lightgreen")
-      (create-style ".header"
-                    :border-style "solid"
-                    :color "white"
-                    :background-color "seagreen")
-      (create-style ".number"
-                    :text-align "right")
-      (create-style ".vertical"
-                    :writing-mode "vertical-rl"
-                    :vertical-align "top"
-                    :text-align "center")
-      (create-style ".center"
-                    :text-align "center")
-      (template sheet model)
-      (with-open [out (io/output-stream "target/営業日報.xlsx")]
-        (.write wb out))))
+    (let [sheet [:div.grid-sheet]]
+      (pprint (html (template sheet model)))))
 

@@ -1,5 +1,6 @@
 (ns axebomber.usermodel
-  (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]))
+  (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]
+           [org.apache.poi.ss.usermodel WorkbookFactory]))
 
 (defn create-workbook [& {:keys [font-family font-size]
                           :or {font-family "Meiryo" font-size 8}}]
@@ -14,4 +15,6 @@
     (.setColumnWidth sheet col-index 768))
   sheet)
 
+(defn open-workbook [filename]
+  (WorkbookFactory/create filename))
 

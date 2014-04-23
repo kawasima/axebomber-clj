@@ -29,7 +29,7 @@
   {"vertical-rl" 0xFF
    "horizontal-tb" 0})
 
-(def ^:const colors
+(def colors
   {"aqua"   (.getIndex IndexedColors/AQUA)
    "black"  (.getIndex IndexedColors/BLACK)
    "blue"   (.getIndex IndexedColors/BLUE)
@@ -77,8 +77,10 @@
    "white"  (.getIndex IndexedColors/WHITE)
    "yellow" (.getIndex IndexedColors/YELLOW)})
 
+(def colors-invert (clojure.set/map-invert colors))
+
 (defn- get-cell-style [sheet style style-index]
-  (if-let [cell-style (get-in @cell-style-cache [style style-index])]
+  (if-let [cell-style (get-in @cell-style-cache [sheet style style-index])]
     cell-style
     (let [cs (.. sheet getWorkbook createCellStyle)
           bs (get border-styles (get style :border-style "none"))]
@@ -106,7 +108,7 @@
       (when-let [vertical-align (:vertical-align style)]
         (.setVerticalAlignment cs (get vertical-aligns vertical-align CellStyle/VERTICAL_TOP)))
 
-      (swap! cell-style-cache assoc-in [style style-index] cs)
+      (swap! cell-style-cache assoc-in [sheet style style-index] cs)
       cs)))
 
 (defn- apply-style-each-cells [sheet x y w h style]
@@ -157,4 +159,25 @@
 (create-style "td" :border-style "solid")
 (create-style "box" :border-style "solid" :text-align "center" :vertical-align "middle")
 
-
+(defn read-style [cell]
+  (let [style (.getCellStyle cell)]
+    (merge
+      (condp = (.getAlignment style)
+        CellStyle/ALIGN_RIGHT {:text-align "right"}
+        CellStyle/ALIGN_CENTER {:text-align "center"}
+        nil)
+      (condp = (.getVerticalAlignment style)
+        CellStyle/VERTICAL_CENTER {:vertical-align "middle"}
+        CellStyle/VERTICAL_BOTTOM {:vertical-align "bottom"}
+        nil)
+      (case (.getRotation style)
+        0xFF {:writing-mode "vertical-rl"}
+        nil)
+      (when-let [font (some-> cell
+                        (.getSheet)
+                        (.getWorkbook)
+                        (.getFontAt (.getFontIndex style)))]
+        (when-not (= (.getColor font) (.getIndex IndexedColors/AUTOMATIC)) 
+          {:color (get colors-invert (.getColor font))}))
+      (when-let [bg-color (get colors-invert (.getFillForegroundColor style))]
+        {:background-color bg-color}))))

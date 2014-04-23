@@ -1,6 +1,7 @@
 (ns axebomber.basic-test
   (:require [clojure.java.io :as io])
-  (:use [axebomber usermodel render]
+  (:use [axebomber usermodel]
+    [axebomber.renderer excel]
     [axebomber.style :only [create-style]]
     [midje.sweet])
   (:import [org.apache.poi.ss.usermodel CellStyle IndexedColors]
