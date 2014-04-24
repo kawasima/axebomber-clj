@@ -1,5 +1,6 @@
 (ns axebomber.style
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [clojure.set])
   (:use [axebomber.util])
   (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]
            [org.apache.poi.ss.util CellUtil CellRangeAddress]

@@ -196,6 +196,12 @@
 (defmethod render-tag "dd" [sheet {:keys [x y dt-width] :or {dt-width 3} :as ctx} tag attrs content]
   (render sheet (assoc ctx :x (+ x dt-width)) content))
 
+(defmethod render-tag "dt" [sheet {:keys [x y] :as ctx} tag attrs content]
+  (let [[w h children] (render sheet ctx content)
+        cell (get-cell sheet x y)]
+    (.setCellValue cell (str (.getStringCellValue cell) ":"))
+    [w 0 children]))
+
 (defmethod render-tag "dl" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [font-index (.. (get-cell sheet x y) getCellStyle getFontIndex)
         font (.. (.getWorkbook sheet) (getFontAt font-index))
@@ -203,7 +209,7 @@
                           (map last)
                           (map #(string-width % (Font. (.getFontName font) Font/PLAIN (.getFontHeightInPoints font))))
                           (apply max))]
-    (render sheet (assoc ctx :dt-width (Math/ceil (/ title-length 20))) content)))
+    (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 
 (defmethod render-tag :default
   [sheet ctx tag attrs content]
