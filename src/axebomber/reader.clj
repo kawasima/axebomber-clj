@@ -96,14 +96,14 @@
                 [:tr (make-td nb)]]))))
       (if (not-empty boxes)
         (recur nb (first boxes) (rest boxes))
-        (map #(vector (-> % second :abs-x) (-> % second :abs-y) %) @tables)))))
+        (map #(vector {:x (-> % second :abs-x) :y (-> % second :abs-y)} %) @tables)))))
 
 (defn read-text [cell value]
   (let [style-text (map (fn [[k v]] (str (name k) ":" v ";")) (read-style cell))]
     (if-let [region (get-merged-region cell)]
-      [(.getColumnIndex cell) (.getRowIndex cell)
+      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)} 
         [:p value]]
-      [(.getColumnIndex cell) (.getRowIndex cell)
+      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)} 
         [:p value]])))
 
 (defn read [workbook sheet-name]
@@ -129,3 +129,14 @@
         (when (< y (dec (.getLastRowNum sheet)))
           (recur (inc y)))))
     (concat @exprs (boxes-to-tables @boxes))))
+
+(defn copy-grid [src dest]
+  (let [column-index (loop [y 0 last-column 0]
+                       (let [row (.getRow src y)]
+                         (some-> (.getRow dest y)
+                                 (.setHeightInPoints (.getHeightInPoints row)))
+                         (if (< y (dec (.getLastRowNum src)))
+                           (recur (inc y) (max (.getLastCellNum row) last-column))
+                           (max (.getLastCellNum row) last-column))))]
+    (doseq [x (range (inc column-index))]
+      (.setColumnWidth dest x (int (.getColumnWidth src x))))))

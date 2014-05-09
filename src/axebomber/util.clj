@@ -1,11 +1,15 @@
 (ns axebomber.util
   (:import [org.apache.poi.ss.util CellUtil]
-           [org.apache.poi.ss.usermodel CellStyle]
-           [java.awt Font Toolkit Canvas]))
+           [org.apache.poi.ss.usermodel CellStyle Font]
+           [java.awt Toolkit]
+           [java.awt.font TextAttribute FontRenderContext TextLayout]
+           [java.text AttributedString]))
 
 (def ^:dynamic *base-url* nil)
-(def canvas (Canvas.))
+
 (def dpi (.getScreenResolution (Toolkit/getDefaultToolkit)))
+(def font-render-context (FontRenderContext. nil (boolean true) (boolean true)))
+
 
 (defmacro with-base-url
   "Sets a base URL that will be prepended onto relative URIs. Note that for this
@@ -71,8 +75,52 @@
       :left   (not= (.getBorderLeft style) CellStyle/BORDER_NONE)
       :right  (not= (.getBorderRight style) CellStyle/BORDER_NONE))))
 
-(defn string-width
-  "Calculate the width of a given string."
-  [s font]
-  (let [metrics (.getFontMetrics canvas font)]
-    (float (* (.stringWidth metrics s) (/ dpi 72)))))
+(defn- make-attributed-string [s font]
+  (let [txt (AttributedString. s)
+        len (.length s)]
+    (doto txt
+      (.addAttribute TextAttribute/FAMILY (.getFontName font) 0 len)
+      (.addAttribute TextAttribute/SIZE (.getFontHeightInPoints font) 0 len))
+    (when (= (.getBoldweight font) Font/BOLDWEIGHT_BOLD)
+      (.addAtribute TextAttribute/WEIGHT TextAttribute/WEIGHT_BOLD 0 len))
+    (when (.getItalic font)
+      (.addAtribute TextAttribute/POSTURE TextAttribute/POSTURE_OBLIQUE 0 len))
+    (when (= (.getUnderline font) Font/U_SINGLE)
+      (.addAtribute TextAttribute/UNDERLINE TextAttribute/UNDERLINE_ON 0 len))
+    txt))
+
+(defn string-width [s font]
+  (let [layout (TextLayout. (.getIterator (make-attributed-string s font))
+                            font-render-context)]
+    (float (* (.. layout getBounds getWidth) (/ dpi 72)))))
+ 
+(defn bsearch-char-count
+  ([char-seq width font]
+   (bsearch-char-count char-seq 0 (count char-seq) width font))
+  ([char-seq l u width font]
+   (if (< u 2) 1
+     (let [m (quot (+ l u) 2)
+           len (string-width (apply str (take m char-seq)) font)]
+       (cond
+        (>= l u) m
+        (> (- width len) 1) (recur char-seq (inc m) u width font)
+        (< width len) (recur char-seq l (dec m) width font))))))
+ 
+(defn width-range [sheet from to]
+  (let [wb (.getWorkbook sheet)
+        char-width (string-width "0" (.getFontAt wb (short 0)))
+        margin (- (string-width "00" (.getFontAt wb (short 0))) (* char-width 2))]
+    (map #(+ (* (/ (.getColumnWidth sheet %) 256) (+ char-width margin)) margin) (range from to))))
+ 
+(defn split-by-width [s width font]
+  (if (empty? s) [""]
+    (loop [char-seq (seq s) splitted []]
+      (let [idx (bsearch-char-count char-seq
+                  width
+                  font)
+             splitted (conj splitted (apply str (take idx char-seq)))]
+        (if (= (count char-seq) idx)
+          splitted
+          (recur (drop idx char-seq) splitted))))))
+
+ 

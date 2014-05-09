@@ -14,7 +14,6 @@
           sheet (to-grid (.createSheet out-wb "Excel"))]
       (doseq [component components]
         (apply render sheet component))
+      (reader/copy-grid (.getSheet wb "記載事項（第1号様式）") sheet)
       (with-open [out (io/output-stream "target/reader.xlsx")]
         (.write out-wb out)))))
-
-

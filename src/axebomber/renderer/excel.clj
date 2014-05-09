@@ -1,10 +1,11 @@
 (ns axebomber.renderer.excel
   (:require [clj-time.format :as time-fmt]
-            [clj-time.coerce :as c])
+            [clj-time.coerce :as c]
+            [clojure.string :as string])
   (:use [clojure.walk :only [prewalk]]
         [axebomber util style])
   (:import [java.awt Font]
-           [org.apache.poi.ss.util CellUtil]
+           [org.apache.poi.ss.util CellUtil SheetUtil]
            [org.apache.poi.ss.usermodel CellStyle IndexedColors]))
 
 (declare render)
@@ -92,16 +93,23 @@
     :else filtered)))
 
 
-(defn render-literal [sheet {x :x y :y} lit]
+;; TODO Sould determine the default data-width.
+(defn render-literal [sheet {:keys [x y data-width]} lit]
   (let [lit (if (instance? java.util.Date lit)
               (time-fmt/unparse time-formatter (c/from-date lit)) lit)
-        lines (-> (map-indexed
-                   (fn [idx v]
-                     (let [c (get-cell sheet x (+ y idx))]
-                       (.setCellValue c v)))
-                   (clojure.string/split (str lit) #"\n"))
-                count)]
-    [1 lines lit]))
+        font-index (.. (get-cell sheet x y) getCellStyle getFontIndex)
+        font (.. (.getWorkbook sheet) (getFontAt font-index))]
+    [(or data-width 1)
+     (->> (string/split (str lit) #"(\r\n|\r|\n)")
+          (map #(split-by-width %
+                  (if data-width
+                    (reduce + (width-range sheet x (+ x data-width)))
+                    65536)
+                 font))
+          (reduce into)
+          (map-indexed #(.setCellValue (get-cell sheet x (+ y %1)) %2))
+          (count))
+     lit]))
 
 (defn render-horizontal [sheet {x :x y :y :as ctx} [tag attrs content]]
   (let [max-height (atom 0)
@@ -113,9 +121,9 @@
         (reset! max-height (max h @max-height))
         (if (not-empty (rest content))
           (recur cx (rest content) (conj children child))
-          [(- cx x) @max-height (conj children child)])))))
+          [(- cx x) @max-height (seq (conj children child))])))))
 
-(defn render-vertical [sheet {x :x y :y :as ctx}[tag attrs content]]
+(defn render-vertical [sheet {x :x y :y :as ctx} [tag attrs content]]
   (let [max-width (atom 0)
         cx (+ x (get attrs :data-margin-left 0))]
     (loop [cy (+ y (get attrs :data-margin-top 0)), content content, children []]
@@ -127,7 +135,7 @@
           (recur cy (rest content) (conj children child))
           [@max-width
            (- cy y (- (get attrs :data-margin-bottom 0)))
-           (conj children child)])))))
+           (seq (conj children child))])))))
 
 (defmulti render-tag (fn [sheet ctx tag & rst] tag))
 
@@ -150,11 +158,11 @@
 
 (defmethod render-tag "td" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [cx (correct-td-position sheet x y)
-        [w h child] (render sheet (assoc ctx :x cx) content)
         size (or (and (:colspan attrs) (inherit-size sheet cx y :colspan (:colspan attrs)))
                   (:data-width attrs)
                   (inherit-size sheet cx y))
-        attrs (assoc attrs :data-width size)]
+        attrs (assoc (merge ctx attrs) :data-width size)
+        [w h child] (render sheet (assoc attrs :x cx) content)]
     [(+ size (- cx x)) h ["td" attrs child]]))
 
 (defmethod render-tag "box" [sheet {px :x py :y :as ctx} tag {:keys [x y w h] :as attrs} content]
@@ -207,7 +215,7 @@
         font (.. (.getWorkbook sheet) (getFontAt font-index))
         title-length (->> (filter-children content "dt")
                           (map last)
-                          (map #(string-width % (Font. (.getFontName font) Font/PLAIN (.getFontHeightInPoints font))))
+                          (map #(string-width % font))
                           (apply max))]
     (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 

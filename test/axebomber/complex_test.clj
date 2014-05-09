@@ -60,7 +60,7 @@
             [:td.title.vertical {:data-width 2 :data-height 8} "特記事項"]
             [:td {:data-width 26 :data-height 8 :style "vertical-align: top"} (:特記事項 model)]]])
 
-  (render sheet 31 1
+  (render sheet {:x 31 :y 1}
           [:div
            "スケジュール"
            [:table {:data-margin-left 1 :data-margin-bottom 1}
@@ -98,7 +98,7 @@
      :内容     "担当者怖いです。"}
     {:取引先名 "C社"
      :連絡先   "03-XXXX-XXXX"
-     :内容     "電話にでんわ。"}]
+     :内容     "電話にでんわ。非常に長い文言を入れると、セル幅に合わせて自動で改行されます。\n便利ですね！！"}]
 
    :特記事項 "特になし\n\n\n\nですが、改行の分だけ行数が伸びます。"})
 
