@@ -41,7 +41,7 @@ HTMLと同じように、:table, :tr, :th, :td といったタグを使って表
 行の高さは、その行に含まれるセルの高さの最大値に自動的にセットされるので、特に指定する必要はありません。
 
 ```clojure
-(render sheet 2 2
+(render sheet {:x 2 :y 2}
   [:table
     [:tr
       [:th {:size 3} "ID"]
@@ -56,7 +56,7 @@ HTMLと同じように、:table, :tr, :th, :td といったタグを使って表
 デフォルトはセル内のテキストは左寄せになりますが、:tdタグの属性に`{:text-align "center"}`または`{:text-align "right"}`を指定すると、 セルが結合されて中央寄せ、右寄せされます。
 
 ```clojure
-(render sheet 2 2
+(render sheet {:x 2 :y 2}
   [:table
     [:tr
       [:th {:size 3} "ID"]
@@ -71,7 +71,7 @@ HTMLと同じように、:table, :tr, :th, :td といったタグを使って表
 HTMLのテーブルと同じようにcolspan/rowspan属性が利用できます。
 
 ```clojure
-(render sheet 2 2
+(render sheet {:x 2 :y 2}
   [:table
     [:tr
       [:th {:size 3} "大分類"]
@@ -86,7 +86,7 @@ HTMLと同じ要領で、:ul, :ol, :li のタグを使って表現します。
 行頭文字に1マス使われます。
 
 ```clojure
-(render sheet 2 2
+(render sheet {:x 2 :y 2}
   [:ul {:list-style "・"}
     [:li "りんご"]
     [:li "みかん"]
@@ -97,7 +97,7 @@ HTMLと同じ要領で、:ul, :ol, :li のタグを使って表現します。
 
 これらのAPIはClojureのHTMLテンプレートとして使われているhiccupをベースにしています。そしてhiccupと同じように、forやifの構文が使えます。
 ```clojure
-(render sheet 2 2
+(render sheet {:x 2 :y 2}
   [:table
     (for [item items]
       [:tr

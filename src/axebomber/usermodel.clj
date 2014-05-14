@@ -11,8 +11,9 @@
     wb))
 
 (defn to-grid [sheet]
-  (doseq [col-index (range 256)]
-    (.setColumnWidth sheet col-index 768))
+  (let [font (.getFontAt (.getWorkbook sheet) (short 0))]
+    (doseq [col-index (range 256)]
+      (.setColumnWidth sheet col-index (+ 200 (* 256 2)))))
   sheet)
 
 (defn open-workbook [filename]
