@@ -57,11 +57,16 @@
     (when-not (some nil? box-pos)
       box-pos)))
 
-(defn correct-td-position [sheet x y]
-  (loop [cx x]
-    (if-let [[_ _ _ right] (in-box (get-cell sheet cx y))]
-      (recur (inc (first right)))
-      cx)))
+(defn correct-td-position
+  ([sheet x y]
+   (correct-td-position sheet x y 1))
+  ([sheet x y h]
+   (loop [cx x]
+     (if-let [[top bottom left right] (in-box (get-cell sheet cx y))]
+       (do
+         ;; TODO hが１より大きければ、rowspanが崩れるので、線を引き直す。
+         (recur (inc (first right))))
+       cx))))
 
 (defn- inherit-size [sheet x y & {:keys [colspan] :or {colspan 1}}]
   (if (or (<= y 0)
@@ -146,7 +151,7 @@
   (let [[w h td-tags] (render-horizontal sheet ctx [tag attrs content])
         td-tags (filter-children (seq td-tags) "td")]
     (loop [cx x, idx 0, row-height 65536]
-      (let [cx (correct-td-position sheet cx y)
+      (let [cx (correct-td-position sheet cx y h)
             [td-tag td-attrs _] (nth td-tags idx)
             size (get td-attrs :data-width 3)
             height (get td-attrs :data-height h)]
