@@ -109,7 +109,7 @@
   (let [layout (TextLayout. (.getIterator (make-attributed-string s font))
                             font-render-context)]
     (float (* (.. layout getBounds getWidth) (/ dpi 72)))))
- 
+
 (defn bsearch-char-count
   ([char-seq width font]
    (bsearch-char-count char-seq 0 (count char-seq) width font))
@@ -121,13 +121,13 @@
         (>= l u) m
         (> (- width len) 1) (recur char-seq (inc m) u width font)
         (< width len) (recur char-seq l (dec m) width font))))))
- 
+
 (defn width-range [sheet from to]
   (let [wb (.getWorkbook sheet)
         char-width (string-width "0" (.getFontAt wb (short 0)))
         margin (- (string-width "00" (.getFontAt wb (short 0))) (* char-width 2))]
-    (map #(+ (* (/ (.getColumnWidth sheet %) 256) (+ char-width margin)) margin) (range from to))))
- 
+    (map #(+ (* (quot (.getColumnWidth sheet %) 256) (+ char-width margin)) margin) (range from to))))
+
 (defn split-by-width [s width font]
   (if (empty? s) [""]
     (loop [char-seq (seq s) splitted []]
@@ -139,4 +139,4 @@
           splitted
           (recur (drop idx char-seq) splitted))))))
 
- 
+
