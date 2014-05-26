@@ -42,25 +42,20 @@
       [tag (merge-attributes tag-attrs map-attrs) (next content)]
       [tag tag-attrs content])))
 
-(defn in-box [cell]
-  (let [x (.getColumnIndex cell) y (.getRowIndex cell)
-        sheet (.getSheet cell)
-        box-pos (for [direction [:top :bottom :left :right]]
-                  (loop [cx x, cy y]
-                    (if (border? (get-cell sheet cx cy) direction)
-                      [cx cy]
-                      (when (and
-                             (< 0 cx (dec (.. sheet (getRow cy) (getLastCellNum))))
-                             (< 0 cy (inc (.. sheet (getLastRowNum)))))
-                        (recur (case direction :left (dec cx) :right (inc cx) cx)
-                               (case direction :top (dec cy) :bottom (inc cy) cy))))))]
-    (when-not (some nil? box-pos)
-      box-pos)))
+(defn extend-cell [sheet x y w h]
+  (let [cell (get-cell sheet x y)
+        style (read-style cell)
+        [[_ y] _ [x _] _] (in-box cell)]
+    (prn x y w h style)
+    (apply-style "td" sheet x y w h style)))
 
-(defn correct-td-position [sheet x y]
+(defn correct-td-position [sheet x y & {:keys [height]}]
   (loop [cx x]
-    (if-let [[_ _ _ right] (in-box (get-cell sheet cx y))]
-      (recur (inc (first right)))
+    (if-let [[top bottom _ right] (in-box (get-cell sheet cx y))]
+      (do
+        (when (and height (> height 1)) 
+          (extend-cell sheet cx y (inc (- (first right) cx)) (- (second bottom) (second top) (- height))))
+        (recur (inc (first right))))
       cx)))
 
 (defn- inherit-size [sheet x y & {:keys [colspan] :or {colspan 1}}]
@@ -146,7 +141,7 @@
   (let [[w h td-tags] (render-horizontal sheet ctx [tag attrs content])
         td-tags (filter-children (seq td-tags) "td")]
     (loop [cx x, idx 0, row-height 65536]
-      (let [cx (correct-td-position sheet cx y)
+      (let [cx (correct-td-position sheet cx y :height h)
             [td-tag td-attrs _] (nth td-tags idx)
             size (get td-attrs :data-width 3)
             height (get td-attrs :data-height h)]

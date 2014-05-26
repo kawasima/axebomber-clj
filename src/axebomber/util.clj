@@ -57,6 +57,30 @@
     (some #(when (.isInRange % (.getRowIndex cell) (.getColumnIndex cell)) %)
           (map #(.getMergedRegion sheet %) (range (. sheet getNumMergedRegions))))))
 
+(defn border? [cell pos]
+  (when-let [style (some-> cell (.getCellStyle))]
+    (case pos
+      :top    (not= (.getBorderTop style) CellStyle/BORDER_NONE)
+      :bottom (not= (.getBorderBottom style) CellStyle/BORDER_NONE)
+      :left   (not= (.getBorderLeft style) CellStyle/BORDER_NONE)
+      :right  (not= (.getBorderRight style) CellStyle/BORDER_NONE))))
+
+(defn in-box [cell]
+  (let [x (.getColumnIndex cell) y (.getRowIndex cell)
+        sheet (.getSheet cell)
+        box-pos (for [direction [:top :bottom :left :right]]
+                  (loop [cx x, cy y]
+                    (if (border? (get-cell sheet cx cy) direction)
+                      [cx cy]
+                      (when (and
+                             (< 0 cx (dec (.. sheet (getRow cy) (getLastCellNum))))
+                             (< 0 cy (inc (.. sheet (getLastRowNum)))))
+                        (recur (case direction :left (dec cx) :right (inc cx) cx)
+                               (case direction :top (dec cy) :bottom (inc cy) cy))))))]
+    (when-not (some nil? box-pos)
+      box-pos)))
+
+
 (defn neighbor [cell direction]
   (let [x (.getColumnIndex cell) y (.getRowIndex cell)]
     (case direction
@@ -66,14 +90,6 @@
       :left  (when (> x 0)
                (some-> (.getSheet cell) (.getRow y) (.getCell (dec x))))
       :right (some-> (.getSheet cell) (.getRow y) (.getCell (inc x))))))
-
-(defn border? [cell pos]
-  (when-let [style (some-> cell (.getCellStyle))]
-    (case pos
-      :top    (not= (.getBorderTop style) CellStyle/BORDER_NONE)
-      :bottom (not= (.getBorderBottom style) CellStyle/BORDER_NONE)
-      :left   (not= (.getBorderLeft style) CellStyle/BORDER_NONE)
-      :right  (not= (.getBorderRight style) CellStyle/BORDER_NONE))))
 
 (defn- make-attributed-string [s font]
   (let [txt (AttributedString. s)

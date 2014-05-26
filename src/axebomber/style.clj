@@ -141,7 +141,6 @@
     (-> (apply merge selector-style class-styles)
         (merge attr-style))))
 
-
 (defn apply-style [selector sheet x y w h attrs]
   (let [merged-style (merge-style selector attrs)
         height (max (+ h (get attrs :rowspan 1) -1)
@@ -182,3 +181,4 @@
           {:color (get colors-invert (.getColor font))}))
       (when-let [bg-color (get colors-invert (.getFillForegroundColor style))]
         {:background-color bg-color}))))
+
