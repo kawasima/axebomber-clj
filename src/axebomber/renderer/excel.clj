@@ -46,14 +46,15 @@
   (let [cell (get-cell sheet x y)
         style (read-style cell)
         [[_ y] _ [x _] _] (in-box cell)]
-    (prn x y w h style)
+    (when-let [merged (get-merged-region cell)]
+      (unmerge-region cell))
     (apply-style "td" sheet x y w h style)))
 
 (defn correct-td-position [sheet x y & {:keys [height]}]
   (loop [cx x]
     (if-let [[top bottom _ right] (in-box (get-cell sheet cx y))]
       (do
-        (when (and height (> height 1)) 
+        (when (and height (> height 1))
           (extend-cell sheet cx y (inc (- (first right) cx)) (- (second bottom) (second top) (- height))))
         (recur (inc (first right))))
       cx)))

@@ -57,6 +57,17 @@
     (some #(when (.isInRange % (.getRowIndex cell) (.getColumnIndex cell)) %)
           (map #(.getMergedRegion sheet %) (range (. sheet getNumMergedRegions))))))
 
+(defn unmerge-region
+  "Remove merged region that contains a given cell."
+  [cell]
+  (let [sheet (.getSheet cell)
+        region-indexes (->> (range (.getNumMergedRegions sheet))
+                            (map #(vector % (.getMergedRegion sheet %)))
+                            (filter #(.isInRange (second %) (.getRowIndex cell) (.getColumnIndex cell)))
+                            (map first))]
+    (doseq [idx region-indexes]
+      (.removeMergedRegion sheet idx))))
+
 (defn border? [cell pos]
   (when-let [style (some-> cell (.getCellStyle))]
     (case pos
