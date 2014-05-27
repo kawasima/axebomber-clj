@@ -3,7 +3,7 @@
 
 (declare render)
 
-(defn render-element [sheet x y expr]
+(defn render-element [sheet {x :x y :y} expr]
   (conj sheet
     (if (map? (second expr))
       (-> expr
@@ -13,9 +13,9 @@
         (conj {:x x :y y} (first expr))
         vec))))
 
-(defn render [sheet x y expr & {:as options}]
+(defn render [sheet ctx expr & {:as options}]
   (cond
-   (vector? expr) (render-element sheet x y expr)
+   (vector? expr) (render-element sheet ctx expr)
 ;   (literal? expr) (render-literal sheet x y expr)
 ;   (seq? expr) (render-seq sheet x y expr options)
 ;   (nil? expr) [1 1 ""]

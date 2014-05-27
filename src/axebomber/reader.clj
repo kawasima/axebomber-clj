@@ -101,9 +101,9 @@
 (defn read-text [cell value]
   (let [style-text (map (fn [[k v]] (str (name k) ":" v ";")) (read-style cell))]
     (if-let [region (get-merged-region cell)]
-      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)} 
+      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)}
         [:p value]]
-      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)} 
+      [{:x (.getColumnIndex cell) :y (.getRowIndex cell)}
         [:p value]])))
 
 (defn read [workbook sheet-name]
@@ -111,8 +111,8 @@
         parsed-cell (atom #{})
         boxes (atom [])
         exprs (atom [])]
-    (loop [y 0]
-      (let [row (.getRow sheet y)]
+    (loop [y (.getFirstRowNum sheet)]
+      (when-let [row (.getRow sheet y)]
         (loop [x (long (.getFirstCellNum row))]
           (when-let [cell (and (not (get @parsed-cell [x y])) (get-cell sheet x y))]
             (if (top-left? cell)
@@ -125,18 +125,18 @@
               (when-let [v (cell-value cell)]
                 (swap! exprs conj (read-text cell v)))))
           (when (< x (dec (.getLastCellNum row)))
-            (recur (inc x))))
-        (when (< y (dec (.getLastRowNum sheet)))
-          (recur (inc y)))))
+            (recur (inc x)))))
+      (when (< y (dec (.getLastRowNum sheet)))
+        (recur (inc y))))
     (concat @exprs (boxes-to-tables @boxes))))
 
 (defn copy-grid [src dest]
-  (let [column-index (loop [y 0 last-column 0]
+  (let [column-index (loop [y (.getFirstRowNum src) last-column 0]
                        (let [row (.getRow src y)]
                          (some-> (.getRow dest y)
-                                 (.setHeightInPoints (.getHeightInPoints row)))
+                                 (.setHeightInPoints (if row (.getHeightInPoints row) (.getDefaultRowHeightInPoints src))))
                          (if (< y (dec (.getLastRowNum src)))
-                           (recur (inc y) (max (.getLastCellNum row) last-column))
-                           (max (.getLastCellNum row) last-column))))]
+                           (recur (inc y) (max (if row (.getLastCellNum row) 0) last-column))
+                           (max (if row (.getLastCellNum row) 0) last-column))))]
     (doseq [x (range (inc column-index))]
       (.setColumnWidth dest x (int (.getColumnWidth src x))))))
