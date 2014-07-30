@@ -129,9 +129,10 @@
      (let [m (quot (+ l u) 2)
            len (string-width (apply str (take m char-seq)) font)]
        (cond
-        (>= l u) m
-        (> (- width len) 1) (recur char-seq (inc m) u width font)
-        (< width len) (recur char-seq l (dec m) width font))))))
+         (>= l u) m
+         (> (- width len) 1) (recur char-seq (inc m) u width font)
+         (< width len) (recur char-seq l (dec m) width font)
+         :default m)))))
 
 (defn width-range [sheet from to]
   (let [wb (.getWorkbook sheet)

@@ -3,4 +3,6 @@ resources
 .lein-*
 .nrepl-*
 pom.xml
+/*.iml
+/.idea
 
