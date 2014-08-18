@@ -215,6 +215,11 @@
                           (apply max))]
     (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 
+(defmethod render-tag "img" [sheet {:keys [x y src] :as ctx} tag attrs content]
+  (let [baos (ByteArrayOutputStream.)
+        img  (ImageIO/read src)]
+    (ImageIO/write img "png" baos)))
+
 (defmethod render-tag :default
   [sheet ctx tag attrs content]
   (render-vertical sheet ctx [tag attrs content]))
