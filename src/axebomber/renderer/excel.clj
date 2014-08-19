@@ -3,7 +3,8 @@
             [clj-time.coerce :as c]
             [clojure.string :as string])
   (:use [clojure.walk :only [prewalk]]
-        [axebomber util style])
+        [axebomber util style]
+        [axebomber.renderer excel-picture])
   (:import [java.awt Font]
            [org.apache.poi.ss.util CellUtil SheetUtil]
            [org.apache.poi.ss.usermodel CellStyle IndexedColors]))
@@ -215,10 +216,8 @@
                           (apply max))]
     (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 
-(defmethod render-tag "img" [sheet {:keys [x y src] :as ctx} tag attrs content]
-  (let [baos (ByteArrayOutputStream.)
-        img  (ImageIO/read src)]
-    (ImageIO/write img "png" baos)))
+(defmethod render-tag "img" [sheet {:keys [x y src data-width] :as ctx} tag attrs content]
+  (draw-image sheet x y src :data-width data-width))
 
 (defmethod render-tag :default
   [sheet ctx tag attrs content]

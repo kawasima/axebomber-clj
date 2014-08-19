@@ -177,7 +177,7 @@
                         (.getSheet)
                         (.getWorkbook)
                         (.getFontAt (.getFontIndex style)))]
-        (when-not (= (.getColor font) (.getIndex IndexedColors/AUTOMATIC)) 
+        (when-not (= (.getColor font) (.getIndex IndexedColors/AUTOMATIC))
           {:color (get colors-invert (.getColor font))}))
       (when-let [bg-color (get colors-invert (.getFillForegroundColor style))]
         {:background-color bg-color}))))

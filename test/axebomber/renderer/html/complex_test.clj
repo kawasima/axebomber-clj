@@ -90,6 +90,12 @@
    :特記事項 "特になし\n\n\n\nですが、改行の分だけ行数が伸びます。"})
 
 (fact "Generate hogan."
-    (let [sheet [:div.grid-sheet]]
-      (pprint (html (template sheet model)))))
+    (let [sheet [:div.jagrid]]
+      (spit "target/営業日報.html"
+            (html5
+             [:head
+              (include-css "jagrid.css")
+              (include-js  "jagrid.js")]
+             [:body
+              (html (template sheet model))]))))
 
