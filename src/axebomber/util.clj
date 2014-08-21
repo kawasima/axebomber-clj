@@ -117,7 +117,7 @@
     txt))
 
 (defn string-width [s font]
-  (let [layout (TextLayout. (.getIterator (make-attributed-string s font))
+  (let [layout (TextLayout. (.getIterator (make-attributed-string (str s) font))
                             font-render-context)]
     (float (* (.. layout getBounds getWidth) (/ dpi 72)))))
 

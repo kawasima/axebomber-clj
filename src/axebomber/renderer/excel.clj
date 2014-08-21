@@ -96,7 +96,7 @@
               (time-fmt/unparse time-formatter (c/from-date lit)) lit)
         font-index (.. (get-cell sheet x y) getCellStyle getFontIndex)
         font (.. (.getWorkbook sheet) (getFontAt font-index))]
-    [(or data-width 1)
+    [(or data-width (int (/ (string-width lit font) 9)))
      (->> (string/split (str lit) #"(\r\n|\r|\n)")
           (map #(split-by-width %
                   (if data-width
@@ -219,9 +219,14 @@
 (defmethod render-tag "img" [sheet {:keys [x y src data-width] :as ctx} tag attrs content]
   (draw-image sheet x y src :data-width data-width))
 
+(defmethod render-tag "br" [sheet ctx tag attrs content]
+  [0 1 nil])
+
 (defmethod render-tag :default
   [sheet ctx tag attrs content]
-  (render-vertical sheet ctx [tag attrs content]))
+  (let [[w h child] (render-vertical sheet ctx [tag attrs content])]
+    (apply-style tag sheet (:x ctx) (:y ctx) w h attrs)
+    [w h child]))
 
 (defn- element-render-strategy
   "Returns the compilation strategy to use for a given element."

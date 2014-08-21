@@ -4,7 +4,7 @@
   (:use [axebomber.util])
   (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]
            [org.apache.poi.ss.util CellUtil CellRangeAddress]
-           [org.apache.poi.ss.usermodel CellStyle IndexedColors]))
+           [org.apache.poi.ss.usermodel Font CellStyle IndexedColors]))
 
 (def style-sets (atom {}))
 (def cell-style-cache (atom {}))
@@ -80,11 +80,27 @@
 
 (def colors-invert (clojure.set/map-invert colors))
 
+(def ^:const font-weights
+  {"bold" Font/BOLDWEIGHT_BOLD
+   "normal" Font/BOLDWEIGHT_NORMAL})
+
+(defn font-map [font]
+  {:weight (.getBoldweight font)
+   :height (.getFontHeight font)
+   :name   (.getFontName font)
+   :color  (.getColor font)
+   :italic? (.getItalic font)
+   :strikeout? (.getStrikeout font)
+   :offset (.getTypeOffset font)
+   :underline (.getUnderline font)})
+
 (defn- get-cell-style [sheet style style-index]
   (if-let [cell-style (get-in @cell-style-cache [sheet style style-index])]
     cell-style
     (let [cs (.. sheet getWorkbook createCellStyle)
-          bs (get border-styles (get style :border-style "none"))]
+          bs (get border-styles (get style :border-style "none"))
+          default-font (font-map (.. sheet getWorkbook (getFontAt (short 0))))
+          font (atom default-font)]
       (when (not= (bit-and style-index 1) 0)
         (.setBorderTop cs bs))
       (when (not= (bit-and style-index 2) 0)
@@ -96,10 +112,6 @@
       (when-let [background-color (:background-color style)]
         (.setFillForegroundColor cs (get colors background-color (.getIndex IndexedColors/WHITE)))
         (.setFillPattern cs CellStyle/SOLID_FOREGROUND))
-      (when-let [color (:color style)]
-        (let [font (. (.getWorkbook sheet) createFont)]
-          (.setColor font (get colors color (.getIndex IndexedColors/BLACK)))
-          (.setFont cs font)))
       (when-let [align (:text-align style)]
         (.setAlignment cs (get text-aligns align "left")))
 
@@ -108,6 +120,35 @@
 
       (when-let [vertical-align (:vertical-align style)]
         (.setVerticalAlignment cs (get vertical-aligns vertical-align CellStyle/VERTICAL_TOP)))
+
+      (when-let [color (:color style)]
+        (swap! font assoc :color (get colors color (.getIndex IndexedColors/BLACK))))
+
+      (when-let [font-style (:font-style style)]
+        (swap! font assoc :italic? (= font-style "italic")))
+
+      (when-let [font-size (:font-size style)]
+        (swap! font assoc :height (short (* 20 font-size))))
+
+      (when-let [font-weight (:font-weight style)]
+        (swap! font assoc :weight (get font-weights font-weight Font/BOLDWEIGHT_NORMAL)))
+
+      (when (not= default-font @font)
+        (if-let [defined-font (.. sheet getWorkbook
+                              (findFont (:weight @font) (:color @font) (:height @font) (:name @font)
+                                (:italic? @font) (:strikeout? @font) (:offset @font) (:underline @font)))]
+        (.setFont cs defined-font)
+        (let [new-font (.. sheet getWorkbook createFont)]
+          (doto new-font
+            (.setBoldweight (:weight @font))
+            (.setFontHeight (:height @font))
+            (.setColor      (:color  @font))
+            (.setFontName   (:name   @font))
+            (.setItalic     (:italic? @font))
+            (.setStrikeout  (:strikeout? @font))
+            (.setTypeOffset (:offset @font))
+            (.setUnderline  (:underline @font)))
+          (.setFont cs new-font))))
 
       (swap! cell-style-cache assoc-in [sheet style style-index] cs)
       cs)))
@@ -157,6 +198,9 @@
 
 (create-style :default :border-style "none")
 (create-style "td" :border-style "solid")
+(create-style "h1" :font-weight "bold" :font-size 18)
+(create-style "h2" :font-weight "bold")
+(create-style "h3" :font-weight "bold")
 (create-style "box" :border-style "solid" :text-align "center" :vertical-align "middle")
 
 (defn read-style [cell]
@@ -176,7 +220,7 @@
       (when-let [font (some-> cell
                         (.getSheet)
                         (.getWorkbook)
-                        (.getFontAt (.getFontIndex style)))]
+                        (.getFontAt (short (.getFontIndex style))))]
         (when-not (= (.getColor font) (.getIndex IndexedColors/AUTOMATIC))
           {:color (get colors-invert (.getColor font))}))
       (when-let [bg-color (get colors-invert (.getFillForegroundColor style))]

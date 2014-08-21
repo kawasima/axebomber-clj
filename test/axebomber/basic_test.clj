@@ -12,7 +12,10 @@
          (fact "Simple render"
                (let [sheet (to-grid (.createSheet wb "Simple render"))]
                  (render sheet {:x 1 :y 1} "こんにちは、Excel方眼紙！")
-                 (render sheet {:x 1 :y 2} "さようなら、UIとしてのExcel…")))
+                 (render sheet {:x 1 :y 2} "さようなら、UIとしてのExcel…")
+                 (render sheet {:x 1 :y 10}
+                   [:h1 "見出し"])))
+
          (fact "Simple tabel"
                (let [sheet (to-grid (.createSheet wb "Simple table"))]
                  (render sheet {:x 0 :y 0}
