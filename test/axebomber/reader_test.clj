@@ -7,15 +7,14 @@
         [midje.sweet]))
 
 (fact "Read an Excel grid sheet."
-  (with-open [file (io/input-stream (io/resource "非機能テスト-1.4.xlsx"))]
+  (with-open [file (io/input-stream (io/resource "reader-test.xlsx"))]
     (let [wb (open-workbook file)
-          components (reader/read wb "大規模アプリテスト")
+          components (reader/read wb "読取テスト用方眼紙")
           out-wb (create-workbook)
           sheet (to-grid (.createSheet out-wb "Excel"))]
       (doseq [component components]
-        (prn component)
         (apply render sheet component))
-      (reader/copy-grid (.getSheet wb "大規模アプリテスト") sheet)
+      (reader/copy-grid (.getSheet wb "読取テスト用方眼紙") sheet)
       (with-open [out (io/output-stream "target/reader.xlsx")]
         (.write out-wb out)))))
 

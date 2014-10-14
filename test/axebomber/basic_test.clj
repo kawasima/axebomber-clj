@@ -116,6 +116,13 @@
                           [:dd "ピッタリ"]
                           ])))
 
+         (fact "Image"
+               (let [sheet (to-grid (.createSheet wb "Image"))]
+                 (render sheet {:x 1 :y 1}
+                   [:div
+                     [:img {:src "dev-resources/google.png" :data-width 10}]
+                     [:row-break]
+                     [:img {:src "dev-resources/google.png"}]])))
 
          (with-open [out (io/output-stream "target/simple.xlsx")]
            (.write wb out))))

@@ -77,7 +77,7 @@
       (if-not cb
         (do
           (swap! tables conj
-                  [:table {:abs-x (nth nb 0) :abs-y (nth nb 1)}
+                  [:table {:x (nth nb 0) :y (nth nb 1)}
                    [:tr (make-td nb)]])
           (reset! row-size (nth nb 3)))
         (if (same-row? cb nb)
@@ -92,11 +92,11 @@
                      [:tr (make-td nb)])
               (reset! row-size (nth nb 3)))
             (swap! tables conj
-              [:table {:abs-x (nth nb 0) :abs-y (nth nb 1)}
+              [:table {:x (nth nb 0) :y (nth nb 1)}
                 [:tr (make-td nb)]]))))
       (if (not-empty boxes)
         (recur nb (first boxes) (rest boxes))
-        (map #(vector {:x (-> % second :abs-x) :y (-> % second :abs-y)} %) @tables)))))
+        (map #(vector {:x (-> % second :x) :y (-> % second :y)} %) @tables)))))
 
 (defn read-text [cell value]
   (let [style-text (map (fn [[k v]] (str (name k) ":" v ";")) (read-style cell))]

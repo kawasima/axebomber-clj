@@ -1,5 +1,6 @@
 (ns axebomber.renderer.excel-picture
   (:use [axebomber util])
+  (:require [clojure.java.io :as io])
   (:import [org.apache.poi.ss.usermodel Workbook Picture Drawing ClientAnchor]
            [javax.imageio ImageIO]
            [java.awt.image BufferedImage]
@@ -28,7 +29,7 @@
 
 (defn draw-image [sheet x y image-file & {data-width :data-width}]
   (let [baos (ByteArrayOutputStream.)
-        img (read-image image-file baos)
+        img (read-image (io/file image-file) baos)
         drawing (.createDrawingPatriarch sheet)
         [w w-px] (if data-width
                    [data-width (->> (range x (+ x data-width 1))
@@ -38,7 +39,6 @@
         [h h-px] (scan-rows img sheet y w-px)
         anchor (.createAnchor drawing 0 0 0 0 x y (+ x w) (+ y h))
         pic-index (.addPicture (.getWorkbook sheet) (.toByteArray baos) Workbook/PICTURE_TYPE_PNG)]
-    (println pic-index image-file)
     (.setAnchorType anchor 0)
     (.createPicture drawing anchor pic-index)
     [w h nil]))

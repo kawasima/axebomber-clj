@@ -107,7 +107,7 @@
         len (.length s)]
     (doto txt
       (.addAttribute TextAttribute/FAMILY (.getFontName font) 0 len)
-      (.addAttribute TextAttribute/SIZE (.getFontHeightInPoints font) 0 len))
+      (.addAttribute TextAttribute/SIZE (int (Math/round (* (.getFontHeightInPoints font) (/ dpi 72.0)))) 0 len))
     (when (= (.getBoldweight font) Font/BOLDWEIGHT_BOLD)
       (.addAtribute TextAttribute/WEIGHT TextAttribute/WEIGHT_BOLD 0 len))
     (when (.getItalic font)
@@ -119,7 +119,7 @@
 (defn string-width [s font]
   (let [layout (TextLayout. (.getIterator (make-attributed-string (str s) font))
                             font-render-context)]
-    (float (* (.. layout getBounds getWidth) (/ dpi 72)))))
+    (.. layout getBounds getWidth)))
 
 (defn bsearch-char-count
   ([char-seq width font]

@@ -1,12 +1,12 @@
 (ns axebomber.util-test
-  (:require [axebomber.reader :as reader]
-            [clojure.java.io :as io])
-  (:use [axebomber util]
+  (:require [clojure.java.io :as io])
+  (:use [axebomber util usermodel]
         [clojure.pprint]
-        [midje.sweet])
-  (:import [java.awt Font]))
+        [midje.sweet]))
 
 (fact "String width."
-      (string-width "こんにちはExcel" (Font. "ＭＳ Ｐゴシック" Font/PLAIN 12)) => 80)
+      (let [wb (create-workbook)]
+        (Math/round (string-width "こんにちはExcel" (.getFontAt wb (short 0)))) => 74))
+      
 
 

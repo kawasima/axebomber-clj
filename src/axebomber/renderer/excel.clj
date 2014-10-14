@@ -216,10 +216,14 @@
                           (apply max))]
     (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 
-(defmethod render-tag "img" [sheet {:keys [x y src data-width] :as ctx} tag attrs content]
+(defmethod render-tag "img" [sheet {:keys [x y data-width] :as ctx} tag {:keys [src data-width] :as attrs} content]
   (draw-image sheet x y src :data-width data-width))
 
 (defmethod render-tag "br" [sheet ctx tag attrs content]
+  [0 1 nil])
+
+(defmethod render-tag "row-break" [sheet ctx tag attrs content]
+  (.setRowBreak sheet (:y ctx))
   [0 1 nil])
 
 (defmethod render-tag :default
