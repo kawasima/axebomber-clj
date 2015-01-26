@@ -1,4 +1,4 @@
-(defproject net.unit8/axebomber-clj "0.1.0"
+(defproject net.unit8/axebomber-clj "0.1.1-SNAPSHOT"
   :description "The generator for MS-Excel grid sheet"
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"

@@ -105,21 +105,24 @@
 (defn- make-attributed-string [s font]
   (let [txt (AttributedString. s)
         len (.length s)]
-    (doto txt
-      (.addAttribute TextAttribute/FAMILY (.getFontName font) 0 len)
-      (.addAttribute TextAttribute/SIZE (int (Math/round (* (.getFontHeightInPoints font) (/ dpi 72.0)))) 0 len))
-    (when (= (.getBoldweight font) Font/BOLDWEIGHT_BOLD)
-      (.addAtribute TextAttribute/WEIGHT TextAttribute/WEIGHT_BOLD 0 len))
-    (when (.getItalic font)
-      (.addAtribute TextAttribute/POSTURE TextAttribute/POSTURE_OBLIQUE 0 len))
-    (when (= (.getUnderline font) Font/U_SINGLE)
-      (.addAtribute TextAttribute/UNDERLINE TextAttribute/UNDERLINE_ON 0 len))
+    (when (> len 0)
+      (doto txt
+        (.addAttribute TextAttribute/FAMILY (.getFontName font) 0 len)
+        (.addAttribute TextAttribute/SIZE (int (Math/round (* (.getFontHeightInPoints font) (/ dpi 72.0)))) 0 len))
+      (when (= (.getBoldweight font) Font/BOLDWEIGHT_BOLD)
+        (.addAttribute txt TextAttribute/WEIGHT TextAttribute/WEIGHT_BOLD))
+      (when (.getItalic font)
+        (.addAttribute txt TextAttribute/POSTURE TextAttribute/POSTURE_OBLIQUE 0 len))
+      (when (= (.getUnderline font) Font/U_SINGLE)
+        (.addAttribute txt TextAttribute/UNDERLINE TextAttribute/UNDERLINE_ON 0 len)))
     txt))
 
 (defn string-width [s font]
-  (let [layout (TextLayout. (.getIterator (make-attributed-string (str s) font))
+  (if (> (.length (str s)) 0)
+    (let [layout (TextLayout. (.getIterator (make-attributed-string (str s) font))
                             font-render-context)]
-    (.. layout getBounds getWidth)))
+      (.. layout getBounds getWidth))
+    0))
 
 (defn bsearch-char-count
   ([char-seq width font]
@@ -139,6 +142,15 @@
         char-width (string-width "0" (.getFontAt wb (short 0)))
         margin (- (string-width "00" (.getFontAt wb (short 0))) (* char-width 2))]
     (map #(+ (* (quot (.getColumnWidth sheet %) 256) (+ char-width margin)) margin) (range from to))))
+
+(defn width-cell-range [sheet from px]
+  (let [wb (.getWorkbook sheet)
+        char-width (string-width "0" (.getFontAt wb (short 0)))
+        margin (- (string-width "00" (.getFontAt wb (short 0))) (* char-width 2))]
+    (loop [x from, w 0]
+      (if (< px w) (- x from)
+        (recur (inc x)
+               (+ w (* (quot (.getColumnWidth sheet x) 256) (+ char-width margin))))))))
 
 (defn split-by-width [s width font]
   (if (empty? s) [""]

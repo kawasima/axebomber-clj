@@ -128,7 +128,7 @@
         (swap! font assoc :italic? (= font-style "italic")))
 
       (when-let [font-size (:font-size style)]
-        (swap! font assoc :height (short (* 20 font-size))))
+        (swap! font assoc :height (short (* 20 (Integer/parseInt (str font-size))))))
 
       (when-let [font-weight (:font-weight style)]
         (swap! font assoc :weight (get font-weights font-weight Font/BOLDWEIGHT_NORMAL)))
@@ -192,6 +192,10 @@
                                 height
                                 merged-style)
       (apply-style-each-cells sheet x y w height merged-style))))
+
+(defn get-location-styles [selector attrs]
+  (let [merged-style (merge-style selector attrs)]
+    (-> merged-style)))
 
 (defn create-style [selector & {:as style}]
   (swap! style-sets assoc selector style))

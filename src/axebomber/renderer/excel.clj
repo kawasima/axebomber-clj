@@ -19,6 +19,7 @@
 
 (def ^:const default-column-width 5)
 
+
 (defn- literal? [expr]
   (or (string? expr)
       (keyword? expr)
@@ -33,7 +34,7 @@
 (defn normalize-element
   "Ensure an element vector is of the form [tag-name attrs content]."
   [[tag & content]]
-  (when (not (or (keyword? tag) (symbol? tag) (string? tag)))
+  (when-not (or (keyword? tag) (symbol? tag) (string? tag))
     (throw (IllegalArgumentException. (str tag " is not a valid element name."))))
   (let [[_ tag id class] (re-matches re-tag (as-str tag))
         tag-attrs        {:id id
@@ -69,7 +70,7 @@
         (if-let [merged-cell (get-merged-region cell)]
           (if (>= cols colspan)
             (- (.getLastColumn merged-cell) (.getFirstColumn merged-cell) -1)
-            (recur (+ (.getLastColumn merged-cell) 1) (inc cols)))
+            (recur (inc (.getLastColumn merged-cell)) (inc cols)))
           (if (not= (.. cell getCellStyle getBorderRight) CellStyle/BORDER_NONE)
             (if (>= cols colspan)
               (- cx x -1)
@@ -95,9 +96,11 @@
   (let [lit (if (instance? java.util.Date lit)
               (time-fmt/unparse time-formatter (c/from-date lit)) lit)
         font-index (.. (get-cell sheet x y) getCellStyle getFontIndex)
-        font (.. (.getWorkbook sheet) (getFontAt font-index))]
-    [(or data-width (int (/ (string-width lit font) 9)))
-     (->> (string/split (str lit) #"(\r\n|\r|\n)")
+        font (.. (.getWorkbook sheet) (getFontAt font-index))
+        width (width-cell-range sheet x (string-width lit font))
+        lits (string/split (str lit) #"(\r\n|\r|\n)")]
+    [(or data-width width)
+     (->> (if (empty? lits) [""] lits) 
           (map #(split-by-width %
                   (if data-width
                     (reduce + (width-range sheet x (+ x data-width)))
@@ -134,12 +137,12 @@
            (- cy y (- (get attrs :data-margin-bottom 0)))
            (seq (conj children child))])))))
 
-(defmulti render-tag (fn [sheet ctx tag & rst] tag))
+(defmulti render-tag* (fn [sheet ctx tag & rst] tag))
 
-(defmethod render-tag "table" [sheet ctx tag attrs content]
+(defmethod render-tag* "table" [sheet ctx tag attrs content]
   (render-vertical sheet ctx [tag attrs content]))
 
-(defmethod render-tag "tr" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "tr" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [[w h td-tags] (render-horizontal sheet ctx [tag attrs content])
         td-tags (filter-children (seq td-tags) "td")]
     (loop [cx x, idx 0, row-height 65536]
@@ -153,7 +156,7 @@
           [w (min row-height height) ["tr" attrs td-tags]])))))
 
 
-(defmethod render-tag "td" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "td" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [cx (correct-td-position sheet x y)
         size (or (and (:colspan attrs) (inherit-size sheet cx y :colspan (:colspan attrs)))
                   (:data-width attrs)
@@ -162,12 +165,12 @@
         [w h child] (render sheet (assoc attrs :x cx) content)]
     [(+ size (- cx x)) h ["td" attrs child]]))
 
-(defmethod render-tag "box" [sheet {px :x py :y :as ctx} tag {:keys [x y w h] :as attrs} content]
+(defmethod render-tag* "box" [sheet {px :x py :y :as ctx} tag {:keys [x y w h] :as attrs} content]
   (let [[cw ch child] (render sheet (assoc ctx :x (+ px x) :y (+ py y)) content)]
     (apply-style "box" sheet (+ px x) (+ py y) w h attrs)
     [cw ch child]))
 
-(defmethod render-tag "graphics" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "graphics" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [w (:data-width attrs)
         h (:data-height attrs)]
     (doseq [cont content]
@@ -175,7 +178,7 @@
     [w h nil]))
 
 
-(defmethod render-tag "ul" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "ul" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [list-style-type (get attrs :list-style-type "・")
         [w h children] (render-vertical sheet ctx [tag attrs content])]
     (->> children
@@ -185,7 +188,7 @@
          doall)
     [w h children]))
 
-(defmethod render-tag "ol" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "ol" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [[w h children] (render-vertical sheet ctx [tag attrs content])]
     (->> children
          (tree-seq sequential? seq)
@@ -194,20 +197,21 @@
          doall)
     [w h children]))
 
-(defmethod render-tag "li" [sheet {x :x y :y :as ctx} tag attrs content]
-  (let [[w h children] (render sheet (assoc ctx :x (inc x)) content)]
+(defmethod render-tag* "li" [sheet {x :x y :y :as ctx} tag attrs content]
+  (let [[w h children] (render sheet
+                         (assoc ctx :x (inc x)) content :direction :horizontal)]
     [w h [tag (merge attrs {:x x :y y}) content]]))
 
-(defmethod render-tag "dd" [sheet {:keys [x y dt-width] :or {dt-width 3} :as ctx} tag attrs content]
+(defmethod render-tag* "dd" [sheet {:keys [x y dt-width] :or {dt-width 3} :as ctx} tag attrs content]
   (render sheet (assoc ctx :x (+ x dt-width)) content))
 
-(defmethod render-tag "dt" [sheet {:keys [x y] :as ctx} tag attrs content]
+(defmethod render-tag* "dt" [sheet {:keys [x y] :as ctx} tag attrs content]
   (let [[w h children] (render sheet ctx content)
         cell (get-cell sheet x y)]
     (.setCellValue cell (str (.getStringCellValue cell) ":"))
     [w 0 children]))
 
-(defmethod render-tag "dl" [sheet {x :x y :y :as ctx} tag attrs content]
+(defmethod render-tag* "dl" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [font-index (.. (get-cell sheet x y) getCellStyle getFontIndex)
         font (.. (.getWorkbook sheet) (getFontAt font-index))
         title-length (->> (filter-children content "dt")
@@ -216,17 +220,22 @@
                           (apply max))]
     (render sheet (assoc ctx :dt-width (inc (Math/floor (/ title-length 20)))) content)))
 
-(defmethod render-tag "img" [sheet {:keys [x y data-width] :as ctx} tag {:keys [src data-width] :as attrs} content]
+(defmethod render-tag* "img" [sheet {:keys [x y data-width] :as ctx} tag {:keys [src data-width] :as attrs} content]
   (draw-image sheet x y src :data-width data-width))
 
-(defmethod render-tag "br" [sheet ctx tag attrs content]
+(defmethod render-tag* "br" [sheet ctx tag attrs content]
   [0 1 nil])
 
-(defmethod render-tag "row-break" [sheet ctx tag attrs content]
+(defmethod render-tag* "row-break" [sheet ctx tag attrs content]
   (.setRowBreak sheet (:y ctx))
   [0 1 nil])
 
-(defmethod render-tag :default
+(defmethod render-tag* "p" [sheet ctx tag attrs content]
+  (let [[w h child] (render-horizontal sheet ctx [tag attrs content])]
+    (apply-style tag sheet (:x ctx) (:y ctx) w h attrs)
+    [w h child]))
+
+(defmethod render-tag* :default
   [sheet ctx tag attrs content]
   (let [[w h child] (render-vertical sheet ctx [tag attrs content])]
     (apply-style tag sheet (:x ctx) (:y ctx) w h attrs)
@@ -244,6 +253,18 @@
       ::literal-tag                    ; e.g. [:span x]
     :else
       ::default))
+
+(defn render-tag [sheet ctx tag attrs content]
+  (let [loc-style (get-location-styles tag attrs)
+        [w h child] (render-tag* sheet
+                                 (-> ctx
+                                     (update-in [:y] #(+ % (get loc-style :margin-top 0)))
+                                     (update-in [:x] #(+ % (get loc-style :margin-left 0))))
+                                 tag attrs content)]
+    [(+ w (get loc-style :margin-left 0))
+     (+ h (get loc-style :margin-top  0))
+     child]))
+  
 
 (defmulti render-element element-render-strategy)
 
