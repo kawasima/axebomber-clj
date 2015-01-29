@@ -8,7 +8,7 @@
            [java.util Date]))
 
 (defn template [sheet model]
-  (render sheet {:x 1 :y 1}
+  (render sheet {:x 0 :y 1}
           [:table
            [:tr
             [:td.header {:data-width 28} "営業日報"]]
