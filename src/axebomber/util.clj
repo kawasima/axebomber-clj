@@ -84,7 +84,7 @@
                     (if (border? (get-cell sheet cx cy) direction)
                       [cx cy]
                       (when (and
-                             (< 0 cx (dec (.. sheet (getRow cy) (getLastCellNum))))
+                             (< -1 cx (dec (.. sheet (getRow cy) (getLastCellNum))))
                              (< 0 cy (inc (.. sheet (getLastRowNum)))))
                         (recur (case direction :left (dec cx) :right (inc cx) cx)
                                (case direction :top (dec cy) :bottom (inc cy) cy))))))]
