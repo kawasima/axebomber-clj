@@ -14,7 +14,9 @@
                  (render sheet {:x 1 :y 1} "こんにちは、Excel方眼紙！")
                  (render sheet {:x 1 :y 2} "さようなら、UIとしてのExcel…")
                  (render sheet {:x 1 :y 10}
-                   [:h1 "見出し"])))
+                   [:h1 "見出し"])
+                 (render sheet {:x 2 :y 12 :data-width 6}
+                   "長い文字列は自動的に改行されます。非常に便利ですね！")))
 
          (fact "Simple tabel"
                (let [sheet (to-grid (.createSheet wb "Simple table"))]

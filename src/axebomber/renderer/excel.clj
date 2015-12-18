@@ -144,8 +144,10 @@
 
 (defmethod render-tag* "tr" [sheet {x :x y :y :as ctx} tag attrs content]
   (let [[w h td-tags] (render-horizontal sheet ctx [tag attrs content])
-        td-tags (filter-children (seq td-tags) "td")]
+        td-tags (concat (filter-children (seq td-tags) "td")
+                        (filter-children (seq td-tags) "th"))]
     (loop [cx x, idx 0, row-height 65536]
+      (println idx td-tags)
       (let [cx (correct-td-position sheet cx y :height h)
             [td-tag td-attrs _] (nth td-tags idx)
             size (get td-attrs :data-width 3)
@@ -156,14 +158,20 @@
           [w (min row-height height) ["tr" attrs td-tags]])))))
 
 
-(defmethod render-tag* "td" [sheet {x :x y :y :as ctx} tag attrs content]
+(defn render-cell [sheet {x :x y :y :as ctx} tag attrs content]
   (let [cx (correct-td-position sheet x y)
         size (or (and (:colspan attrs) (inherit-size sheet cx y :colspan (:colspan attrs)))
                   (:data-width attrs)
                   (inherit-size sheet cx y))
         attrs (assoc (merge ctx attrs) :data-width size)
         [w h child] (render sheet (assoc attrs :x cx) content)]
-    [(+ size (- cx x)) h ["td" attrs child]]))
+    [(+ size (- cx x)) h [tag attrs child]]))
+
+(defmethod render-tag* "td" [sheet ctx tag attrs content]
+  (render-cell sheet ctx tag attrs content))
+
+(defmethod render-tag* "th" [sheet ctx tag attrs content]
+  (render-cell sheet ctx tag attrs content))
 
 (defmethod render-tag* "box" [sheet {px :x py :y :as ctx} tag {:keys [x y w h] :as attrs} content]
   (let [[cw ch child] (render sheet (assoc ctx :x (+ px x) :y (+ py y)) content)]
