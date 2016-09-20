@@ -1,8 +1,9 @@
 (ns axebomber.reader
+  (:refer-clojure :exclude [read])
   (:require [clojure.java.io :as io]
-            [clojure.string :as string] )
-  (:use [axebomber util style]
-        [clojure.pprint])
+            [clojure.string :as string]
+            [axebomber.util :refer :all]
+            [axebomber.style :refer :all])
   (:import [org.apache.poi.ss.usermodel Cell DateUtil FormulaError CellStyle]))
 
 (defmulti cell-value (fn [cell]

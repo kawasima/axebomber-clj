@@ -6,7 +6,4 @@
 
 (fact "String width."
       (let [wb (create-workbook)]
-        (Math/round (string-width "こんにちはExcel" (.getFontAt wb (short 0)))) => 74))
-      
-
-
+        (Math/round (string-width "こんにちはExcel" (.getFontAt wb (short 0)))) => 75))

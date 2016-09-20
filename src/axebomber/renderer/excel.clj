@@ -1,10 +1,11 @@
 (ns axebomber.renderer.excel
   (:require [clj-time.format :as time-fmt]
             [clj-time.coerce :as c]
-            [clojure.string :as string])
-  (:use [clojure.walk :only [prewalk]]
-        [axebomber util style]
-        [axebomber.renderer excel-picture])
+            [clojure.string :as string]
+            [clojure.walk :refer [prewalk]]
+            [axebomber.util :refer :all]
+            [axebomber.style :refer :all]
+            [axebomber.renderer.excel-picture :refer [draw-image]])
   (:import [java.awt Font]
            [org.apache.poi.ss.util CellUtil SheetUtil]
            [org.apache.poi.ss.usermodel CellStyle IndexedColors]))
@@ -100,7 +101,7 @@
         width (width-cell-range sheet x (string-width lit font))
         lits (string/split (str lit) #"(\r\n|\r|\n)")]
     [(or data-width width)
-     (->> (if (empty? lits) [""] lits) 
+     (->> (if (empty? lits) [""] lits)
           (map #(split-by-width %
                   (if data-width
                     (reduce + (width-range sheet x (+ x data-width)))
@@ -147,7 +148,6 @@
         td-tags (concat (filter-children (seq td-tags) "td")
                         (filter-children (seq td-tags) "th"))]
     (loop [cx x, idx 0, row-height 65536]
-      (println idx td-tags)
       (let [cx (correct-td-position sheet cx y :height h)
             [td-tag td-attrs _] (nth td-tags idx)
             size (get td-attrs :data-width 3)
@@ -272,7 +272,7 @@
     [(+ w (get loc-style :margin-left 0))
      (+ h (get loc-style :margin-top  0))
      child]))
-  
+
 
 (defmulti render-element element-render-strategy)
 
@@ -315,4 +315,3 @@
    (seq? expr) (render-seq sheet context expr options)
    (nil? expr) [1 1 ""]
    :else (render-literal sheet context (str expr))))
-

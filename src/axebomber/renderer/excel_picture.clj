@@ -1,7 +1,7 @@
 (ns axebomber.renderer.excel-picture
-  (:use [axebomber util])
-  (:require [clojure.java.io :as io])
-  (:import [org.apache.poi.ss.usermodel Workbook Picture Drawing ClientAnchor]
+  (:require [clojure.java.io :as io]
+            [axebomber.util :refer :all])
+  (:import [org.apache.poi.ss.usermodel Workbook Picture Drawing ClientAnchor ClientAnchor$AnchorType]
            [javax.imageio ImageIO]
            [java.awt.image BufferedImage]
            [java.io ByteArrayOutputStream]))
@@ -39,6 +39,6 @@
         [h h-px] (scan-rows img sheet y w-px)
         anchor (.createAnchor drawing 0 0 0 0 x y (+ x w) (+ y h))
         pic-index (.addPicture (.getWorkbook sheet) (.toByteArray baos) Workbook/PICTURE_TYPE_PNG)]
-    (.setAnchorType anchor 0)
+    (.setAnchorType anchor ClientAnchor$AnchorType/MOVE_AND_RESIZE)
     (.createPicture drawing anchor pic-index)
     [w h nil]))

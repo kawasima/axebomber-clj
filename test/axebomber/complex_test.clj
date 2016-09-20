@@ -1,9 +1,9 @@
 (ns axebomber.complex-test
-  (:require [clojure.java.io :as io])
-  (:use [axebomber usermodel]
-    [axebomber.renderer excel]
-    [axebomber.style :only [create-style]]
-    [midje.sweet])
+  (:require [clojure.java.io :as io]
+            [axebomber.usermodel :refer :all]
+            [axebomber.renderer.excel :refer :all]
+            [axebomber.style :refer [create-style]]
+            [midje.sweet :refer :all])
   (:import [org.apache.poi.ss.usermodel CellStyle IndexedColors]
            [java.util Date]))
 
@@ -123,4 +123,3 @@
       (template sheet model)
       (with-open [out (io/output-stream "target/営業日報.xlsx")]
         (.write wb out))))
-

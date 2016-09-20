@@ -1,5 +1,6 @@
 (ns axebomber.renderer.html
-  (:use [hiccup core page]))
+  (:require [hiccup.core :refer :all]
+            [hiccup.page :refer :all]))
 
 (declare render)
 
@@ -21,5 +22,3 @@
 ;   (nil? expr) [1 1 ""]
 ;   :else (render-literal sheet x y (str expr))
     ))
-
-

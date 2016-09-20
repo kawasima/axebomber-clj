@@ -1,7 +1,7 @@
 (ns axebomber.style
   (:require [clojure.string :as string]
-            [clojure.set])
-  (:use [axebomber.util])
+            [clojure.set]
+            [axebomber.util :refer :all])
   (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]
            [org.apache.poi.ss.util CellUtil CellRangeAddress]
            [org.apache.poi.ss.usermodel Font CellStyle IndexedColors]))
@@ -167,7 +167,8 @@
 
 (defn- apply-style-merged-cells [sheet x y w h style]
   (let [cell (get-cell sheet x y)]
-    (.addMergedRegion sheet (CellRangeAddress. y (+ y h -1) x (+ x w -1)))
+    (when (not= h w 1)
+      (.addMergedRegion sheet (CellRangeAddress. y (+ y h -1) x (+ x w -1))))
     (apply-style-each-cells sheet x y w h style)))
 
 (defn- merge-style [selector attrs]
@@ -229,4 +230,3 @@
           {:color (get colors-invert (.getColor font))}))
       (when-let [bg-color (get colors-invert (.getFillForegroundColor style))]
         {:background-color bg-color}))))
-

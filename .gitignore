@@ -2,6 +2,7 @@ target
 resources
 .lein-*
 .nrepl-*
+*.log
 pom.xml
 /*.iml
 /.idea
